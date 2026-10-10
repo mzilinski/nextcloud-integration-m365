@@ -157,7 +157,7 @@ class GraphClient {
 	public function batch(string $userId, array $requests): array {
 		$responses = [];
 		foreach (array_chunk($requests, 20) as $chunk) {
-			$result = $this->post($userId, '/$batch', ['requests' => array_values($chunk)]);
+			$result = $this->post($userId, '/$batch', ['requests' => $chunk]);
 			$responses = array_merge($responses, $result['responses'] ?? []);
 		}
 		return $responses;

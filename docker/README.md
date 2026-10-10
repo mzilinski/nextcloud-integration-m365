@@ -2,7 +2,7 @@
 
 ```bash
 docker compose -f docker/compose.yml up -d
-# wait until http://localhost:8080 shows the login (admin / admin), then:
+# wait until http://localhost:8181 shows the login (admin / admin), then:
 docker compose -f docker/compose.yml exec -u www-data app php occ app:enable integration_m365
 docker compose -f docker/compose.yml exec -u www-data app php occ config:system:set debug --value=true --type=boolean
 docker compose -f docker/compose.yml exec -u www-data app php occ config:system:set loglevel --value=0 --type=integer
@@ -26,4 +26,4 @@ docker compose -f docker/compose.yml exec -w /var/www/html/custom_apps/integrati
 npm ci && npm run build        # or: npm run watch
 ```
 
-Azure: add `http://localhost:8080/apps/integration_m365/oauth-redirect` as a "Web" redirect URI of the app registration used for development.
+Azure: add `http://localhost:8181/apps/integration_m365/oauth-redirect` as a "Web" redirect URI of the app registration used for development.

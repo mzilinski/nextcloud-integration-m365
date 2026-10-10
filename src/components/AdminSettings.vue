@@ -41,7 +41,6 @@ import { loadState } from '@nextcloud/initial-state'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { confirmPassword } from '@nextcloud/password-confirmation'
 import { NcButton, NcTextField, NcPasswordField } from '@nextcloud/vue'
-import '@nextcloud/password-confirmation/dist/style.css'
 
 export default {
 	name: 'AdminSettings',
