@@ -12,7 +12,7 @@ use OCA\IntegrationM365\Exception\GraphException;
 /** Contacts need their photo fetched/pushed separately from the JSON. */
 class GraphContactsCollection extends GraphRemoteCollection {
 	public function extrasFor(array $ids): array {
-		$ids = array_values($ids);
+		// ids arrive as a list (interface contract)
 		if ($ids === []) {
 			return [];
 		}
