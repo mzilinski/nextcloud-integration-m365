@@ -14,11 +14,14 @@ use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
 use OCA\IntegrationM365\Service\Local\LocalCalendarService;
 use OCA\IntegrationM365\Service\Local\LocalCollectionInterface;
+use OCA\IntegrationM365\Service\Local\LocalContactsService;
 use OCA\IntegrationM365\Service\Mapping\CalendarItemMapper;
+use OCA\IntegrationM365\Service\Mapping\ContactItemMapper;
 use OCA\IntegrationM365\Service\Mapping\ItemMapperInterface;
 use OCA\IntegrationM365\Service\Mapping\TodoItemMapper;
 use OCA\IntegrationM365\Service\Remote\RemoteCalendarService;
 use OCA\IntegrationM365\Service\Remote\RemoteCollectionInterface;
+use OCA\IntegrationM365\Service\Remote\RemoteContactsService;
 use OCA\IntegrationM365\Service\Remote\RemoteTasksService;
 use Psr\Log\LoggerInterface;
 
@@ -30,8 +33,10 @@ class UserSyncService {
 		private CollectionMapper $collections,
 		private SyncEngine $engine,
 		private LocalCalendarService $localCalendars,
+		private LocalContactsService $localContacts,
 		private RemoteCalendarService $remoteCalendars,
 		private RemoteTasksService $remoteTasks,
+		private RemoteContactsService $remoteContacts,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -108,8 +113,12 @@ class UserSyncService {
 				[$id, $uri] = $this->localCalendars->ensureCalendar($userId, $pair, 'VTODO');
 				$this->rememberLocal($pair, $id, $uri, $dryRun);
 				return [$this->localCalendars->bind($userId, $id, $uri), $this->remoteTasks->bind($userId, $pair->getRemoteId()), new TodoItemMapper()];
+			case Application::TYPE_CONTACTS:
+				[$id, $uri] = $this->localContacts->ensureAddressBook($userId, $pair);
+				$this->rememberLocal($pair, $id, $uri, $dryRun);
+				return [$this->localContacts->bind($id), $this->remoteContacts->bind($userId, $pair->getRemoteId()), new ContactItemMapper()];
 			default:
-				throw new \RuntimeException('contacts sync is not implemented yet');
+				throw new \RuntimeException('unknown pair type ' . $pair->getType());
 		}
 	}
 

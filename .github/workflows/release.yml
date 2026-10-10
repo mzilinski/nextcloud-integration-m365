@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: 2026 Malte Zilinski <malte@zilinski.eu>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# On a GitHub release: build the frontend, sign the app with the app-store certificate
+# (secrets APP_PRIVATE_KEY / APP_CERTIFICATE, obtained via nextcloud/app-certificate-requests),
+# attach the tarball to the release and push it to apps.nextcloud.com (secret APPSTORE_TOKEN).
+name: Build and publish app release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: integration_m365
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.APP_NAME }}
+      - name: Validate app version against tag
+        run: |
+          v=$(grep -oE '<version>[^<]+' ${{ env.APP_NAME }}/appinfo/info.xml | cut -d'>' -f2)
+          [ "${GITHUB_REF##*/}" = "v$v" ] || { echo "tag ${GITHUB_REF##*/} != v$v"; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build frontend
+        working-directory: ${{ env.APP_NAME }}
+        run: npm ci && npm run build
+      - name: Prepare release tree
+        run: |
+          mkdir -p build/${{ env.APP_NAME }}
+          rsync -a --exclude-from=${{ env.APP_NAME }}/.nextcloudignore ${{ env.APP_NAME }}/ build/${{ env.APP_NAME }}/
+      - name: Checkout Nextcloud server (for occ integrity:sign-app)
+        uses: actions/checkout@v4
+        with:
+          repository: nextcloud/server
+          ref: stable35
+          submodules: true
+          path: server
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Install server
+        working-directory: server
+        run: |
+          mkdir data
+          php occ maintenance:install --admin-pass=admin --database=sqlite -n
+      - name: Sign app
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          APP_CERTIFICATE: ${{ secrets.APP_CERTIFICATE }}
+        run: |
+          mkdir -p ~/.nextcloud/certificates
+          echo "$APP_PRIVATE_KEY" > ~/.nextcloud/certificates/${{ env.APP_NAME }}.key
+          echo "$APP_CERTIFICATE" > ~/.nextcloud/certificates/${{ env.APP_NAME }}.crt
+          php server/occ integrity:sign-app --privateKey=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.key --certificate=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.crt --path=$PWD/build/${{ env.APP_NAME }}
+      - name: Tarball
+        run: tar -czf ${{ env.APP_NAME }}-${GITHUB_REF##*/}.tar.gz -C build ${{ env.APP_NAME }}
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.APP_NAME }}-*.tar.gz
+      - name: Publish to app store
+        if: ${{ secrets.APPSTORE_TOKEN != '' }}
+        uses: nextcloud-releases/nextcloud-appstore-push-action@v1
+        with:
+          app_name: ${{ env.APP_NAME }}
+          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          download_url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.APP_NAME }}-${{ github.ref_name }}.tar.gz
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}

@@ -1383,3 +1383,26 @@ namespace Sabre\CalDAV\Backend {
     }
 
     }
+namespace OCA\DAV\CardDAV {
+    class CardDavBackend implements \Sabre\CardDAV\Backend\BackendInterface, \Sabre\CardDAV\Backend\SyncSupport {
+        public function getAddressBooksForUser($principalUri) {}
+        public function getAddressBookById(int $addressBookId): ?array {}
+        public function getAddressBooksByUri(string $principal, string $addressBookUri): ?array {}
+        /** @return int */
+        public function createAddressBook($principalUri, $url, array $properties) {}
+        public function updateAddressBook($addressBookId, \Sabre\DAV\PropPatch $propPatch) {}
+        public function deleteAddressBook($addressBookId) {}
+        public function getCards($addressbookId) {}
+        /** @return array|false */
+        public function getCard($addressBookId, $cardUri) {}
+        public function getMultipleCards($addressBookId, array $uris) {}
+        /** @return string etag */
+        public function createCard($addressBookId, $cardUri, $cardData, bool $checkUidConflict = true) {}
+        /** @return string etag */
+        public function updateCard($addressBookId, $cardUri, $cardData) {}
+        public function deleteCard($addressBookId, $cardUri) {}
+        public function getCardByUid(int $addressBookId, string $uid): ?array {}
+        /** @return array|null */
+        public function getChangesForAddressBook($addressBookId, $syncToken, $syncLevel, $limit = null) {}
+    }
+}

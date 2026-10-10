@@ -22,7 +22,7 @@ class ItemMapper extends QBMapper implements ItemStoreInterface {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())
 			->where($qb->expr()->eq('collection_id', $qb->createNamedParameter($collectionId, IQueryBuilder::PARAM_INT)));
-		return array_values($this->findEntities($qb));
+		return $this->findEntities($qb);
 	}
 
 	public function insertItem(Item $item): Item {
