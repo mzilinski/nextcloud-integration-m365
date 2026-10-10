@@ -18,6 +18,29 @@ The app talks to `graph.microsoft.com` on behalf of each connected user, reading
 writing only the collections that user enabled. Tokens are stored encrypted in the
 Nextcloud database. No data is sent anywhere else.
 
+## How it works
+
+* An admin registers one Entra ID application (admin settings show the redirect URI to
+  paste into Azure). Each user connects their own account; tokens are stored encrypted.
+* Per enabled collection the app keeps a *pair*: the Graph calendar / contact folder / To
+  Do list and a local calendar or address book it creates (`m365-…`). A correlation
+  table remembers, per object, the etags last seen on each side and a canonical content
+  hash, so echoes (Exchange bumps the changeKey once after every upload) never bounce.
+* Every 5 minutes a background job asks both sides for changes (local sync token, Graph
+  delta link) and copies real changes across. When both sides changed the same object,
+  the pair's policy decides (Microsoft 365 wins by default).
+* Manual runs: `occ integration_m365:sync --user=<uid> -v` (`--dry-run` to preview,
+  `--full` to re-list everything without touching correlations), `occ integration_m365:pairs`.
+
+## Known limitations
+
+* Series exceptions and single occurrences of recurring events are skipped (the master
+  carries the rule).
+* Contact birthdays are never written to Microsoft (Exchange would create a Birthdays
+  calendar event); To Do keeps only the date of start/due; completing a recurring task
+  makes To Do spawn the next occurrence as a new task.
+* Only the signed-in user's own mailbox (no shared mailboxes, no GAL).
+
 ## Development
 
 See [docker/README.md](docker/README.md).
