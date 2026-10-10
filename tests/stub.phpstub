@@ -618,7 +618,7 @@ namespace OCA\DAV\CalDAV {
          * @param string $uid
          * @return string|null
          */
-        public function getCalendarObjectByUID($principalUri, $uid)
+        public function getCalendarObjectByUID($principalUri, $uid, $calendarUri = null)
         {
         }
 

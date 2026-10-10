@@ -29,6 +29,7 @@ An administrator registers one Azure application; each user connects their own M
     </background-jobs>
     <commands>
         <command>OCA\IntegrationM365\Command\Sync</command>
+        <command>OCA\IntegrationM365\Command\Pairs</command>
     </commands>
     <settings>
         <admin>OCA\IntegrationM365\Settings\Admin</admin>
