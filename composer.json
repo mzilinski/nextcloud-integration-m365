@@ -1,0 +1,34 @@
+{
+    "name": "mzilinski/integration_m365",
+    "description": "Two-way sync of Microsoft 365 calendars, contacts and To Do tasks for Nextcloud",
+    "type": "project",
+    "license": "AGPL-3.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "nextcloud/ocp": "dev-stable35",
+        "nextcloud/coding-standard": "^1.4",
+        "psalm/phar": "^6.8",
+        "phpunit/phpunit": "^10.5",
+        "sabre/vobject": "^4.5"
+    },
+    "autoload": {
+        "psr-4": { "OCA\\IntegrationM365\\": "lib/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "OCA\\IntegrationM365\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "lint": "find . -name \\*.php -not -path './vendor/*' -not -path './node_modules/*' -print0 | xargs -0 -n1 php -l",
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "psalm": "psalm.phar --threads=1",
+        "test:unit": "phpunit -c phpunit.xml"
+    },
+    "config": {
+        "platform": { "php": "8.1.0" },
+        "sort-packages": true,
+        "allow-plugins": { "php-http/discovery": false }
+    }
+}

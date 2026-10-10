@@ -1,0 +1,11 @@
+/vendor/
+/node_modules/
+/js/
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/docker/data/
+/docker/.env
+*.key
+*.crt
+/build/
+.DS_Store

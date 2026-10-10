@@ -1,0 +1,41 @@
+# Dev instance: Nextcloud 35 (apache) + Postgres, app bind-mounted into custom_apps.
+# Start:  docker compose -f docker/compose.yml up -d
+# Then:   docker compose -f docker/compose.yml exec -u www-data app php occ app:enable integration_m365
+name: m365dev
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: nextcloud
+    volumes:
+      - db:/var/lib/postgresql/data
+  app:
+    image: nextcloud:35-apache
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: nextcloud
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: admin
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost
+      OVERWRITECLIURL: http://localhost:8080
+      PHP_MEMORY_LIMIT: 1G
+    volumes:
+      - html:/var/www/html
+      - ..:/var/www/html/custom_apps/integration_m365
+    depends_on: [db]
+  composer:
+    image: composer:2
+    profiles: [tools]
+    working_dir: /app
+    volumes:
+      - ..:/app
+    entrypoint: composer
+volumes:
+  db:
+  html:
