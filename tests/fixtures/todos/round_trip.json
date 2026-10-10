@@ -1,0 +1,41 @@
+{
+  "description": "title, body and due survive read -> write unchanged.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldRoundTripThroughJson",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask6",
+    "title": "Round trip",
+    "body": {
+      "contentType": "text",
+      "content": "Body"
+    },
+    "dueDateTime": {
+      "dateTime": "2026-07-31T22:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "DESCRIPTION:Body",
+    "DUE:20260731T220000Z",
+    "STATUS:NEEDS-ACTION",
+    "SUMMARY:Round trip",
+    "UID:AAMkTask6",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "title": "Round trip",
+    "body": {
+      "contentType": "text",
+      "content": "Body"
+    },
+    "dueDateTime": {
+      "dateTime": "2026-07-31T22:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  }
+}

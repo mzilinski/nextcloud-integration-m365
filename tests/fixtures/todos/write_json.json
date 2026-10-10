@@ -1,0 +1,46 @@
+{
+  "description": "PRIORITY 9 -> low; no STATUS -> notStarted; absolute VALARM -> reminder.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldWriteJson",
+  "direction": "write",
+  "graph": {},
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:test",
+    "BEGIN:VTODO",
+    "UID:t1",
+    "SUMMARY:Review",
+    "DESCRIPTION:Kapitel 3",
+    "DUE:20260731T220000Z",
+    "PRIORITY:9",
+    "CATEGORIES:Arbeit",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Review",
+    "TRIGGER;VALUE=DATE-TIME:20260730T090000Z",
+    "END:VALARM",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "title": "Review",
+    "body": {
+      "contentType": "text",
+      "content": "Kapitel 3"
+    },
+    "dueDateTime": {
+      "dateTime": "2026-07-31T22:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "importance": "low",
+    "status": "notStarted",
+    "isReminderOn": true,
+    "reminderDateTime": {
+      "dateTime": "2026-07-30T09:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "categories": [
+      "Arbeit"
+    ]
+  }
+}

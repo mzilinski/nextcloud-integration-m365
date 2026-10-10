@@ -1,0 +1,31 @@
+{
+  "description": "Recurrence without range -> RRULE:FREQ=DAILY;INTERVAL=2 (no end).",
+  "source": "kdepim-runtime resources/graph/autotests/shouldMapDailyRecurrence",
+  "direction": "read",
+  "graph": {
+    "id": "AAMkTask5",
+    "dueDateTime": {
+      "dateTime": "2026-07-10T08:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "recurrence": {
+      "pattern": {
+        "type": "daily",
+        "interval": 2
+      }
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "DUE:20260710T080000Z",
+    "RRULE:FREQ=DAILY;INTERVAL=2",
+    "STATUS:NEEDS-ACTION",
+    "SUMMARY:",
+    "UID:AAMkTask5",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ]
+}

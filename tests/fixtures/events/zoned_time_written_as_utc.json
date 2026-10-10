@@ -1,0 +1,42 @@
+{
+  "description": "TZID times are converted to UTC on write; RRULE:FREQ=WEEKLY without BYDAY falls back to the start weekday (Graph requires at least one day).",
+  "source": "graphpim",
+  "direction": "write",
+  "graph": {},
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:test",
+    "BEGIN:VEVENT",
+    "UID:x2",
+    "SUMMARY:Berlin",
+    "DTSTART;TZID=Europe/Berlin:20260710T113000",
+    "DTEND;TZID=Europe/Berlin:20260710T120000",
+    "RRULE:FREQ=WEEKLY",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "start": {
+      "dateTime": "2026-07-10T09:30:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-10T10:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "recurrence": {
+      "pattern": {
+        "type": "weekly",
+        "interval": 1,
+        "daysOfWeek": [
+          "friday"
+        ]
+      },
+      "range": {
+        "type": "noEnd",
+        "startDate": "2026-07-10"
+      }
+    }
+  }
+}

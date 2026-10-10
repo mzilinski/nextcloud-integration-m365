@@ -1,0 +1,34 @@
+{
+  "description": "RRULE UNTIL -> range endDate with startDate from DTSTART; no DESCRIPTION -> no body key (server HTML body must not be clobbered).",
+  "source": "kdepim-runtime resources/graph/autotests/shouldWriteDailyRecurrenceWithEndDate",
+  "direction": "write",
+  "graph": {},
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:test",
+    "BEGIN:VTODO",
+    "UID:t2",
+    "SUMMARY:Gießen",
+    "DTSTART:20260710T080000Z",
+    "RRULE:FREQ=DAILY;UNTIL=20260831",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "recurrence": {
+      "pattern": {
+        "type": "daily",
+        "interval": 1
+      },
+      "range": {
+        "type": "endDate",
+        "endDate": "2026-08-31",
+        "startDate": "2026-07-10"
+      }
+    }
+  },
+  "expect_absent": [
+    "body"
+  ]
+}

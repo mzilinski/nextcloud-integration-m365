@@ -1,0 +1,30 @@
+{
+  "description": "To Do ignores Prefer: outlook.timezone — the naive timestamp carries its own zone. 12:00 Berlin summer time == 10:00 UTC on write.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldResolveIanaTimeZones",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask2",
+    "dueDateTime": {
+      "dateTime": "2026-07-10T12:00:00.0000000",
+      "timeZone": "Europe/Berlin"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "DUE;TZID=Europe/Berlin:20260710T120000",
+    "STATUS:NEEDS-ACTION",
+    "SUMMARY:",
+    "UID:AAMkTask2",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "dueDateTime": {
+      "dateTime": "2026-07-10T10:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  }
+}

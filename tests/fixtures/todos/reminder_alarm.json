@@ -1,0 +1,37 @@
+{
+  "description": "isReminderOn + reminderDateTime <-> one absolute DISPLAY VALARM.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldMapReminderToAlarm",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask4",
+    "title": "Anrufen",
+    "isReminderOn": true,
+    "reminderDateTime": {
+      "dateTime": "2026-07-09T09:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "STATUS:NEEDS-ACTION",
+    "SUMMARY:Anrufen",
+    "UID:AAMkTask4",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Anrufen",
+    "TRIGGER;VALUE=DATE-TIME:20260709T090000Z",
+    "END:VALARM",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "isReminderOn": true,
+    "reminderDateTime": {
+      "dateTime": "2026-07-09T09:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  }
+}

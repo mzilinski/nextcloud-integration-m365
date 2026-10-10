@@ -1,0 +1,9 @@
+{
+  "description": "A Graph object without id is not an item (mapper returns nothing).",
+  "source": "kdepim-runtime resources/graph/autotests/shouldReturnNullWithoutId",
+  "direction": "read",
+  "graph": {
+    "subject": "No id"
+  },
+  "item": null
+}

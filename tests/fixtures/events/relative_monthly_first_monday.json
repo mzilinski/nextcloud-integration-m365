@@ -1,0 +1,60 @@
+{
+  "description": "relativeMonthly index first + monday <-> RRULE:FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1.",
+  "source": "graphpim (KDE approximates this as plain monthly and never writes it)",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkAGI2",
+    "subject": "Stammtisch",
+    "start": {
+      "dateTime": "2026-07-06T17:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-06T19:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "recurrence": {
+      "pattern": {
+        "type": "relativeMonthly",
+        "interval": 1,
+        "daysOfWeek": [
+          "monday"
+        ],
+        "index": "first"
+      },
+      "range": {
+        "type": "noEnd"
+      }
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:Stammtisch",
+    "DTSTART:20260706T170000Z",
+    "DTEND:20260706T190000Z",
+    "UID:AAMkAGI2",
+    "RRULE:FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "recurrence": {
+      "pattern": {
+        "type": "relativeMonthly",
+        "interval": 1,
+        "daysOfWeek": [
+          "monday"
+        ],
+        "index": "first"
+      },
+      "range": {
+        "type": "noEnd",
+        "startDate": "2026-07-06"
+      }
+    }
+  }
+}

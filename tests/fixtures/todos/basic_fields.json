@@ -1,0 +1,63 @@
+{
+  "description": "UID = id, text body, start/due, importance high -> PRIORITY:1, inProgress -> IN-PROCESS.",
+  "source": "kdepim-runtime resources/graph/autotests/graphtodohandlertest.cpp shouldMapBasicFields",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask1",
+    "title": "Steuererklärung",
+    "body": {
+      "contentType": "text",
+      "content": "Belege äöü sammeln"
+    },
+    "startDateTime": {
+      "dateTime": "2026-07-10T08:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "dueDateTime": {
+      "dateTime": "2026-07-31T22:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "importance": "high",
+    "status": "inProgress",
+    "categories": [
+      "Privat"
+    ]
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "CATEGORIES:Privat",
+    "DESCRIPTION:Belege äöü sammeln",
+    "DTSTART:20260710T080000Z",
+    "DUE:20260731T220000Z",
+    "PRIORITY:1",
+    "STATUS:IN-PROCESS",
+    "SUMMARY:Steuererklärung",
+    "UID:AAMkTask1",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "title": "Steuererklärung",
+    "body": {
+      "contentType": "text",
+      "content": "Belege äöü sammeln"
+    },
+    "startDateTime": {
+      "dateTime": "2026-07-10T08:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "dueDateTime": {
+      "dateTime": "2026-07-31T22:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "status": "inProgress",
+    "importance": "high",
+    "categories": [
+      "Privat"
+    ],
+    "isReminderOn": false
+  }
+}

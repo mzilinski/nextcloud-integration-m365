@@ -1,0 +1,81 @@
+{
+  "description": "UID from iCalUId, text body, UTC times with 7 fractional digits, location, organizer, categories, showAs free -> TRANSPARENT, sensitivity private -> CLASS:PRIVATE.",
+  "source": "kdepim-runtime resources/graph/autotests/grapheventhandlertest.cpp shouldMapBasicFields/shouldRoundTripThroughJson",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkAGI2",
+    "iCalUId": "040000008200E00074C5B7101A82E008",
+    "subject": "Team Meeting",
+    "body": {
+      "contentType": "text",
+      "content": "Agenda: Ä, Ö, Ü"
+    },
+    "isAllDay": false,
+    "start": {
+      "dateTime": "2026-07-10T09:30:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-10T10:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "location": {
+      "displayName": "Room 1"
+    },
+    "organizer": {
+      "emailAddress": {
+        "name": "Alice",
+        "address": "alice@example.com"
+      }
+    },
+    "categories": [
+      "Work",
+      "Travel"
+    ],
+    "showAs": "free",
+    "sensitivity": "private"
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:Team Meeting",
+    "DTSTART:20260710T093000Z",
+    "DTEND:20260710T100000Z",
+    "UID:040000008200E00074C5B7101A82E008",
+    "CATEGORIES:Work,Travel",
+    "CLASS:PRIVATE",
+    "DESCRIPTION:Agenda: Ä\\, Ö\\, Ü",
+    "LOCATION:Room 1",
+    "ORGANIZER;CN=Alice:mailto:alice@example.com",
+    "TRANSP:TRANSPARENT",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "subject": "Team Meeting",
+    "body": {
+      "contentType": "text",
+      "content": "Agenda: Ä, Ö, Ü"
+    },
+    "isAllDay": false,
+    "start": {
+      "dateTime": "2026-07-10T09:30:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-10T10:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "location": {
+      "displayName": "Room 1"
+    },
+    "categories": [
+      "Work",
+      "Travel"
+    ],
+    "showAs": "free",
+    "sensitivity": "private"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "description": "completed -> STATUS:COMPLETED + COMPLETED timestamp; written back as status completed.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldMapCompletion/shouldWriteCompletedStatus",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask3",
+    "status": "completed",
+    "completedDateTime": {
+      "dateTime": "2026-07-01T15:30:00.0000000",
+      "timeZone": "UTC"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "COMPLETED:20260701T153000Z",
+    "PERCENT-COMPLETE:100",
+    "STATUS:COMPLETED",
+    "SUMMARY:",
+    "UID:AAMkTask3",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "status": "completed"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "description": "VEVENT without TRANSP writes showAs busy; body is always contentType text.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldWriteJsonForTimedEvent",
+  "direction": "write",
+  "graph": {},
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:test",
+    "BEGIN:VEVENT",
+    "UID:x1",
+    "SUMMARY:Review",
+    "DESCRIPTION:Bring the numbers",
+    "DTSTART:20260710T093000Z",
+    "DTEND:20260710T100000Z",
+    "LOCATION:Room 2",
+    "CATEGORIES:Work",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "subject": "Review",
+    "body": {
+      "contentType": "text",
+      "content": "Bring the numbers"
+    },
+    "isAllDay": false,
+    "start": {
+      "dateTime": "2026-07-10T09:30:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-10T10:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "location": {
+      "displayName": "Room 2"
+    },
+    "categories": [
+      "Work"
+    ],
+    "showAs": "busy"
+  }
+}

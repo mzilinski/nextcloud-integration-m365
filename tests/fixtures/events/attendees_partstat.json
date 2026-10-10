@@ -1,0 +1,51 @@
+{
+  "description": "status.response -> PARTSTAT accepted/declined/tentativelyAccepted.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldMapAttendeesWithStatus",
+  "direction": "read",
+  "graph": {
+    "id": "AAMkAGI2",
+    "attendees": [
+      {
+        "emailAddress": {
+          "name": "Bob",
+          "address": "bob@example.com"
+        },
+        "status": {
+          "response": "accepted"
+        }
+      },
+      {
+        "emailAddress": {
+          "name": "Carol",
+          "address": "carol@example.com"
+        },
+        "status": {
+          "response": "declined"
+        }
+      },
+      {
+        "emailAddress": {
+          "name": "Dave",
+          "address": "dave@example.com"
+        },
+        "status": {
+          "response": "tentativelyAccepted"
+        }
+      }
+    ]
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:",
+    "UID:AAMkAGI2",
+    "ATTENDEE;CN=Bob;PARTSTAT=ACCEPTED:mailto:bob@example.com",
+    "ATTENDEE;CN=Carol;PARTSTAT=DECLINED:mailto:carol@example.com",
+    "ATTENDEE;CN=Dave;PARTSTAT=TENTATIVE:mailto:dave@example.com",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ]
+}

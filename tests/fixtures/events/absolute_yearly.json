@@ -1,0 +1,57 @@
+{
+  "description": "absoluteYearly <-> RRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=15.",
+  "source": "graphpim",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkAGI2",
+    "subject": "Jahrestag",
+    "isAllDay": true,
+    "start": {
+      "dateTime": "2026-03-15T00:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-03-16T00:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "recurrence": {
+      "pattern": {
+        "type": "absoluteYearly",
+        "interval": 1,
+        "dayOfMonth": 15,
+        "month": 3
+      },
+      "range": {
+        "type": "noEnd"
+      }
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:Jahrestag",
+    "DTSTART;VALUE=DATE:20260315",
+    "DTEND;VALUE=DATE:20260316",
+    "UID:AAMkAGI2",
+    "RRULE:FREQ=YEARLY;BYMONTHDAY=15;BYMONTH=3",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "recurrence": {
+      "pattern": {
+        "type": "absoluteYearly",
+        "interval": 1,
+        "dayOfMonth": 15,
+        "month": 3
+      },
+      "range": {
+        "type": "noEnd",
+        "startDate": "2026-03-15"
+      }
+    }
+  }
+}

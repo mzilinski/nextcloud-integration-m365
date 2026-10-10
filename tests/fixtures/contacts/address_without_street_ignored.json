@@ -1,0 +1,21 @@
+{
+  "description": "An address object without a street key is ignored; FN falls back to given + surname.",
+  "source": "graphpim (KDE toAddressee: address needs a street key)",
+  "direction": "read",
+  "graph": {
+    "id": "C2",
+    "givenName": "Anna",
+    "surname": "Beispiel",
+    "businessAddress": {
+      "city": "Hamburg"
+    }
+  },
+  "item": [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    "UID:C2",
+    "N:Beispiel;Anna;;;",
+    "FN:Anna Beispiel",
+    "END:VCARD"
+  ]
+}

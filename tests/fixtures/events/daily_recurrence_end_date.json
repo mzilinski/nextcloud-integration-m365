@@ -1,0 +1,53 @@
+{
+  "description": "daily with endDate <-> RRULE:FREQ=DAILY;UNTIL=20260831.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldMapDailyRecurrenceWithEndDate",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkAGI2",
+    "start": {
+      "dateTime": "2026-07-06T08:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-06T09:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "recurrence": {
+      "pattern": {
+        "type": "daily",
+        "interval": 1
+      },
+      "range": {
+        "type": "endDate",
+        "endDate": "2026-08-31"
+      }
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:",
+    "DTSTART:20260706T080000Z",
+    "DTEND:20260706T090000Z",
+    "UID:AAMkAGI2",
+    "RRULE:FREQ=DAILY;UNTIL=20260831",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "recurrence": {
+      "pattern": {
+        "type": "daily",
+        "interval": 1
+      },
+      "range": {
+        "type": "endDate",
+        "endDate": "2026-08-31",
+        "startDate": "2026-07-06"
+      }
+    }
+  }
+}

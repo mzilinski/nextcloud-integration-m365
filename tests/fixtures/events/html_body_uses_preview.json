@@ -1,0 +1,26 @@
+{
+  "description": "HTML bodies are not mapped; DESCRIPTION comes from bodyPreview.",
+  "source": "graphpim (KDE toEvent: non-text body -> bodyPreview)",
+  "direction": "read",
+  "graph": {
+    "id": "AAMkAGI2",
+    "subject": "HTML",
+    "body": {
+      "contentType": "html",
+      "content": "<p>Hi</p>"
+    },
+    "bodyPreview": "Hi"
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:HTML",
+    "UID:AAMkAGI2",
+    "DESCRIPTION:Hi",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ]
+}

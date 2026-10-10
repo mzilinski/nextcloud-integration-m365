@@ -1,0 +1,106 @@
+{
+  "description": "Names/org/notes, first e-mail PREF, phone types, home address, birthday read as BDAY, categories. birthday is never written back (Exchange would create a Birthdays-calendar event).",
+  "source": "kdepim-runtime resources/graph/autotests/graphcontacthandlertest.cpp (all cases)",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkContact1",
+    "givenName": "Jürgen",
+    "surname": "Müßig",
+    "middleName": "K.",
+    "title": "Dr.",
+    "nickName": "Jü",
+    "displayName": "Dr. Jürgen Müßig",
+    "jobTitle": "Engineer",
+    "companyName": "Example GmbH",
+    "department": "R&D",
+    "personalNotes": "Prefers e-mail",
+    "emailAddresses": [
+      {
+        "address": "juergen@example.com"
+      },
+      {
+        "address": "j.muessig@example.org"
+      }
+    ],
+    "businessPhones": [
+      "+49 30 123456"
+    ],
+    "homePhones": [
+      "+49 30 654321"
+    ],
+    "mobilePhone": "+49 170 1234567",
+    "homeAddress": {
+      "street": "Musterstraße 1",
+      "city": "Berlin",
+      "state": "Berlin",
+      "postalCode": "10115",
+      "countryOrRegion": "Germany"
+    },
+    "birthday": "1980-05-15T00:00:00Z",
+    "categories": [
+      "Familie",
+      "Verein"
+    ]
+  },
+  "item": [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    "UID:AAMkContact1",
+    "N:Müßig;Jürgen;K.;Dr.;",
+    "FN:Dr. Jürgen Müßig",
+    "NICKNAME:Jü",
+    "EMAIL;TYPE=INTERNET,PREF:juergen@example.com",
+    "EMAIL;TYPE=INTERNET:j.muessig@example.org",
+    "TEL;TYPE=WORK,VOICE:+49 30 123456",
+    "TEL;TYPE=HOME,VOICE:+49 30 654321",
+    "TEL;TYPE=CELL:+49 170 1234567",
+    "TITLE:Engineer",
+    "ORG:Example GmbH;R&D",
+    "NOTE:Prefers e-mail",
+    "ADR;TYPE=HOME:;;Musterstraße 1;Berlin;Berlin;10115;Germany",
+    "BDAY:1980-05-15",
+    "CATEGORIES:Familie,Verein",
+    "END:VCARD"
+  ],
+  "expect_write": {
+    "givenName": "Jürgen",
+    "surname": "Müßig",
+    "middleName": "K.",
+    "title": "Dr.",
+    "nickName": "Jü",
+    "displayName": "Dr. Jürgen Müßig",
+    "jobTitle": "Engineer",
+    "companyName": "Example GmbH",
+    "department": "R&D",
+    "personalNotes": "Prefers e-mail",
+    "emailAddresses": [
+      {
+        "address": "juergen@example.com"
+      },
+      {
+        "address": "j.muessig@example.org"
+      }
+    ],
+    "businessPhones": [
+      "+49 30 123456"
+    ],
+    "homePhones": [
+      "+49 30 654321"
+    ],
+    "mobilePhone": "+49 170 1234567",
+    "homeAddress": {
+      "street": "Musterstraße 1",
+      "city": "Berlin",
+      "state": "Berlin",
+      "postalCode": "10115",
+      "countryOrRegion": "Germany"
+    },
+    "categories": [
+      "Familie",
+      "Verein"
+    ]
+  },
+  "expect_absent": [
+    "birthday"
+  ]
+}

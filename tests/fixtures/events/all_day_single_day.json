@@ -1,0 +1,42 @@
+{
+  "description": "Graph all-day end is exclusive (next midnight), like iCalendar DTEND;VALUE=DATE. Dates are taken verbatim, never converted through a zone.",
+  "source": "kdepim-runtime resources/graph/autotests/shouldReadAllDayEventWithInclusiveEnd/shouldWriteJsonForAllDayEvent",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkAGI2",
+    "subject": "Birthday",
+    "isAllDay": true,
+    "start": {
+      "dateTime": "2026-07-10T00:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-11T00:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:Birthday",
+    "DTSTART;VALUE=DATE:20260710",
+    "DTEND;VALUE=DATE:20260711",
+    "UID:AAMkAGI2",
+    "TRANSP:OPAQUE",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "isAllDay": true,
+    "start": {
+      "dateTime": "2026-07-10T00:00:00.0000000",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2026-07-11T00:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  }
+}

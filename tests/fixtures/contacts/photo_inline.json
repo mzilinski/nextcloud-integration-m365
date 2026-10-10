@@ -1,0 +1,24 @@
+{
+  "description": "Photos come from /me/contacts/{id}/photo/$value, not the contact JSON; they are embedded as PHOTO;ENCODING=b;TYPE=<subtype>.",
+  "source": "graphpim (KDE GraphFetchPimItemsJob::fetchPhotos)",
+  "direction": "read",
+  "graph": {
+    "id": "C3",
+    "givenName": "Pia",
+    "surname": "Foto",
+    "displayName": "Pia Foto"
+  },
+  "photo": {
+    "base64": "iVBORw0KGgoA",
+    "mime": "image/png"
+  },
+  "item": [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    "UID:C3",
+    "N:Foto;Pia;;;",
+    "FN:Pia Foto",
+    "PHOTO;ENCODING=b;TYPE=PNG:iVBORw0KGgoA",
+    "END:VCARD"
+  ]
+}

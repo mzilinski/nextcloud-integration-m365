@@ -1,0 +1,32 @@
+{
+  "description": "To Do keeps only the date of start/due (midnight in the given zone); such values become DATE values, and a DATE is written back as midnight UTC.",
+  "source": "graphpim (live 2026-10-10: To Do normalised a 17:00 due to 00:00)",
+  "direction": "both",
+  "graph": {
+    "id": "AAMkTask7",
+    "title": "Datum",
+    "dueDateTime": {
+      "dateTime": "2026-10-22T00:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  },
+  "item": [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//graphpim//Microsoft Graph mapping//EN",
+    "BEGIN:VTODO",
+    "DUE;VALUE=DATE:20261022",
+    "STATUS:NEEDS-ACTION",
+    "SUMMARY:Datum",
+    "UID:AAMkTask7",
+    "END:VTODO",
+    "END:VCALENDAR"
+  ],
+  "expect_write": {
+    "title": "Datum",
+    "dueDateTime": {
+      "dateTime": "2026-10-22T00:00:00.0000000",
+      "timeZone": "UTC"
+    }
+  }
+}
