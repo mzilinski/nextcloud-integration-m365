@@ -25,7 +25,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				<NcButton @click="connect">{{ t('integration_m365', 'Connect again') }}</NcButton>
 			</NcNoteCard>
 			<div class="actions">
-				<NcButton :disabled="busy" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
+				<NcButton :disabled="busy || syncing" @click="syncNow">
+					<template v-if="syncing" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ syncing ? syncStatusText : t('integration_m365', 'Sync now') }}
+				</NcButton>
 				<NcButton type="tertiary" :disabled="busy" @click="disconnect">{{ t('integration_m365', 'Disconnect') }}</NcButton>
 			</div>
 			<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
@@ -43,12 +48,12 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
 import { showSuccess, showError } from '@nextcloud/dialogs'
-import { NcButton, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import CollectionTable from './CollectionTable.vue'
 
 export default {
 	name: 'PersonalSettings',
-	components: { NcButton, NcNoteCard, CollectionTable },
+	components: { NcButton, NcNoteCard, NcLoadingIcon, CollectionTable },
 	data() {
 		return {
 			state: loadState('integration_m365', 'user-config'),
@@ -56,7 +61,13 @@ export default {
 			loading: false,
 			busy: false,
 			error: '',
+			syncing: false,
+			syncStatusText: '',
+			pollTimer: null,
 		}
+	},
+	beforeUnmount() {
+		clearTimeout(this.pollTimer)
 	},
 	mounted() {
 		const params = new URLSearchParams(window.location.search)
@@ -94,12 +105,74 @@ export default {
 			}
 		},
 		async syncNow() {
-			try {
-				await axios.post(generateUrl('/apps/integration_m365/sync-now'))
-				showSuccess(this.t('integration_m365', 'Synchronisation queued, it runs with the next background job'))
-			} catch (e) {
-				showError(this.t('integration_m365', 'Could not queue the synchronisation'))
+			this.syncing = true
+			this.syncStatusText = this.t('integration_m365', 'Synchronising…')
+			const before = {}
+			for (const type of Object.keys(this.collections)) {
+				for (const row of this.collections[type]) {
+					before[row.remoteId] = row.lastSync
+				}
 			}
+			let data
+			try {
+				data = (await axios.post(generateUrl('/apps/integration_m365/sync-now'), { inline: true }, { timeout: 120000 })).data
+			} catch (e) {
+				// gateway timeout or similar: the server keeps working, fall back to polling
+				data = { complete: false, queued: true }
+			}
+			if (data.complete) {
+				// one status read to refresh "Last sync" / errors in the tables, then report
+				this.pollStatus(before, Date.now(), true)
+				return
+			}
+			this.syncStatusText = this.t('integration_m365', 'Continuing in the background…')
+			this.pollStatus(before, Date.now())
+		},
+		async pollStatus(before, startedAt, once = false) {
+			let status
+			try {
+				status = (await axios.get(generateUrl('/apps/integration_m365/sync-status'))).data
+			} catch (e) {
+				this.syncing = false
+				showError(this.t('integration_m365', 'Could not read the synchronisation status'))
+				return
+			}
+			// mirror lastSync/lastError into the tables as they come in
+			let allDone = status.pairs.length > 0
+			const errors = []
+			for (const p of status.pairs) {
+				const row = (this.collections[p.type] || []).find(r => r.remoteId === p.remoteId)
+				if (row) {
+					row.lastSync = p.lastSync
+					row.lastError = p.lastError
+				}
+				const touched = p.lastSync !== before[p.remoteId] || (p.lastError && !p.running)
+				if (!touched || p.running) {
+					allDone = false
+				}
+				if (p.lastError && !p.running) {
+					errors.push(p.lastError)
+				}
+			}
+			if (status.running) {
+				this.syncStatusText = this.t('integration_m365', 'Synchronising…')
+			}
+			const finished = once || (!status.queued && !status.running && allDone)
+			const timedOut = Date.now() - startedAt > 15 * 60 * 1000
+			if (finished || timedOut || status.pairs.length === 0) {
+				this.syncing = false
+				if (status.pairs.length === 0) {
+					showError(this.t('integration_m365', 'Nothing to synchronise: enable at least one collection below'))
+				} else if (timedOut) {
+					showError(this.t('integration_m365', 'The background job did not run within 15 minutes. Is the Nextcloud cron set up?'))
+				} else if (errors.length) {
+					showError(this.t('integration_m365', 'Synchronisation finished with errors: {errors}', { errors: errors.join('; ') }))
+				} else {
+					showSuccess(this.t('integration_m365', 'Synchronisation finished'))
+				}
+				return
+			}
+			this.pollTimer = setTimeout(() => this.pollStatus(before, startedAt), 3000)
 		},
 		async loadCollections() {
 			this.loading = true

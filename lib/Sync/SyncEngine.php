@@ -44,6 +44,7 @@ class SyncEngine {
 		RemoteCollectionInterface $remote,
 		ItemMapperInterface $mapper,
 		bool $dryRun = false,
+		?float $deadline = null,
 	): SyncResult {
 		$r = new SyncResult();
 		$policy = $pair->getConflictPolicy() === self::POLICY_LOCAL ? self::POLICY_LOCAL : self::POLICY_REMOTE;
@@ -128,9 +129,18 @@ class SyncEngine {
 
 		// --- helpers --------------------------------------------------------------
 		$writes = 0;
-		$budget = function () use (&$writes, $r): bool {
+		$budget = function () use (&$writes, $r, $deadline): bool {
+			if ($r->truncated) {
+				return false;
+			}
 			if ($writes >= self::MAX_WRITES) {
+				$r->truncated = true;
 				$r->log[] = 'write budget exhausted, continuing next run';
+				return false;
+			}
+			if ($deadline !== null && microtime(true) > $deadline) {
+				$r->truncated = true;
+				$r->log[] = 'time budget exhausted, continuing next run';
 				return false;
 			}
 			$writes++;
@@ -419,7 +429,9 @@ class SyncEngine {
 			}
 		}
 
-		if (!$dryRun) {
+		// Advance the cursors only after a complete pass. After a truncated run the next
+		// run re-lists the same changes; what was already written is absorbed by the echo filter.
+		if (!$dryRun && !$r->truncated) {
 			$pair->setLocalSyncToken($lc['token']);
 			if ($rc['deltaLink'] !== null) {
 				$pair->setDeltaLink($rc['deltaLink']);

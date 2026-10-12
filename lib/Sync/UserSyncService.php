@@ -45,14 +45,20 @@ class UserSyncService {
 	 * @param callable(string):void|null $out verbose output (occ -v)
 	 * @return array<int, SyncResult> keyed by pair id
 	 */
-	public function syncUser(string $userId, bool $dryRun = false, ?callable $out = null, ?int $onlyPair = null): array {
+	public function syncUser(string $userId, bool $dryRun = false, ?callable $out = null, ?int $onlyPair = null, ?float $deadline = null): array {
 		$results = [];
 		foreach ($this->collections->findEnabledByUser($userId) as $pair) {
 			if ($onlyPair !== null && $pair->getId() !== $onlyPair) {
 				continue;
 			}
+			if ($deadline !== null && microtime(true) > $deadline) {
+				$out && $out("pair {$pair->getId()}: time budget exhausted before start, continuing next run");
+				$results[(int)$pair->getId()] = $this->truncatedResult();
+				continue;
+			}
 			if (!$dryRun && ($pair->getLockedUntil() ?? 0) > time()) {
 				$out && $out("pair {$pair->getId()} is locked, skipping");
+				$results[(int)$pair->getId()] = $this->truncatedResult();
 				continue;
 			}
 			if (!$dryRun) {
@@ -60,7 +66,7 @@ class UserSyncService {
 				$this->collections->update($pair);
 			}
 			try {
-				$result = $this->syncPair($userId, $pair, $dryRun, $out);
+				$result = $this->syncPair($userId, $pair, $dryRun, $out, $deadline);
 				$results[(int)$pair->getId()] = $result;
 				$pair->setLastError($result->errors > 0 ? "{$result->errors} item(s) failed, see log" : null);
 				if (!$dryRun) {
@@ -82,6 +88,13 @@ class UserSyncService {
 		return $results;
 	}
 
+	/** Placeholder for a pair that could not run in this call (locked or out of time). */
+	private function truncatedResult(): SyncResult {
+		$r = new SyncResult();
+		$r->truncated = true;
+		return $r;
+	}
+
 	private function finish(Collection $pair, bool $dryRun): void {
 		if ($dryRun) {
 			return;
@@ -91,10 +104,10 @@ class UserSyncService {
 	}
 
 	/** @param callable(string):void|null $out */
-	private function syncPair(string $userId, Collection $pair, bool $dryRun, ?callable $out): SyncResult {
+	private function syncPair(string $userId, Collection $pair, bool $dryRun, ?callable $out, ?float $deadline): SyncResult {
 		[$local, $remote, $mapper] = $this->wire($userId, $pair, $dryRun);
 		$out && $out(sprintf('pair %d [%s] %s -> %s', $pair->getId(), $pair->getType(), $pair->getRemoteName(), $pair->getLocalUri()));
-		$result = $this->engine->sync($pair, $local, $remote, $mapper, $dryRun);
+		$result = $this->engine->sync($pair, $local, $remote, $mapper, $dryRun, $deadline);
 		if ($out) {
 			foreach ($result->log as $line) {
 				$out('  ' . $line);

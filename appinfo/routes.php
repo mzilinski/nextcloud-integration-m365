@@ -12,6 +12,7 @@ return [
 		['name' => 'config#oauthRedirect', 'url' => '/oauth-redirect', 'verb' => 'GET'],
 		['name' => 'config#disconnect', 'url' => '/disconnect', 'verb' => 'POST'],
 		['name' => 'config#syncNow', 'url' => '/sync-now', 'verb' => 'POST'],
+		['name' => 'config#syncStatus', 'url' => '/sync-status', 'verb' => 'GET'],
 		['name' => 'collections#index', 'url' => '/collections', 'verb' => 'GET'],
 		['name' => 'collections#update', 'url' => '/collections/{type}', 'verb' => 'PUT'],
 	],

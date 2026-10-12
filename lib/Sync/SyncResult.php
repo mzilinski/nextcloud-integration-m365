@@ -18,6 +18,8 @@ class SyncResult {
 	public int $conflicts = 0;
 	public int $skipped = 0;
 	public int $errors = 0;
+	/** True when the write or time budget ran out: tokens are not advanced, the next run continues. */
+	public bool $truncated = false;
 	/** @var list<string> */
 	public array $log = [];
 

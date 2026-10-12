@@ -5,7 +5,9 @@
 - Graph ↔ iCalendar/vCard mapping ported from graphpim, verified by the shared conformance fixtures.
 - Two-way sync engine: local sync tokens + Graph delta, correlation table, echo filter, conflict policy, dry run.
 - Calendars, Microsoft To Do lists (as VTODO calendars) and contact folders (with photos).
-- `occ integration_m365:sync` / `integration_m365:pairs`, background job every 5 minutes, "Sync now".
+- `occ integration_m365:sync` / `integration_m365:pairs`, background job every 5 minutes.
+- "Sync now" runs inline with a 20 s time budget and hands the remainder to the background job; the settings page polls the status and reports the outcome.
+- Fixed: a run that hit the write cap advanced the sync cursors anyway, losing the remaining changes. Truncated runs now keep the cursors and continue next time.
 - Fixed: `ItemStoreInterface` was not bound in the DI container (sync failed outside unit tests).
 - Fixed: Graph error responses (4xx/5xx) crashed the client instead of raising `GraphException`.
 - Fixed: a crash while logging a pair failure left the pair locked for 15 minutes.

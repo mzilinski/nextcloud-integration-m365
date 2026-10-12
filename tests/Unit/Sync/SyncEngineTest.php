@@ -72,6 +72,28 @@ class SyncEngineTest extends TestCase {
 		self::assertStringNotContainsString('echo', implode("\n", $r3->log));
 	}
 
+	public function testExpiredTimeBudgetTruncatesWithoutAdvancingCursorsAndNextRunFinishes(): void {
+		$this->local->put('a.ics', self::ics('uid-a', 'Local A'));
+		$this->remote->seed(self::event('Remote B'));
+
+		// deadline already in the past: listing happens, no item may be written
+		$r = $this->engine->sync($this->pair, $this->local, $this->remote, new CalendarItemMapper(), false, microtime(true) - 1);
+		self::assertTrue($r->truncated);
+		self::assertSame(0, $r->writes(), implode("\n", $r->log));
+		self::assertNull($this->pair->getLocalSyncToken());
+		self::assertNull($this->pair->getDeltaLink());
+		self::assertStringContainsString('time budget exhausted', implode("\n", $r->log));
+
+		// the next unbudgeted run picks everything up exactly once
+		$r2 = $this->syncOnce();
+		self::assertFalse($r2->truncated);
+		self::assertSame(1, $r2->localCreated);
+		self::assertSame(1, $r2->remoteCreated);
+		self::assertCount(2, $this->local->objects);
+		self::assertCount(2, $this->remote->objects);
+		self::assertNotNull($this->pair->getLocalSyncToken());
+	}
+
 	public function testLocalEditGoesToRemoteAndRemoteEditComesBack(): void {
 		$this->local->put('a.ics', self::ics('uid-a', 'Local A'));
 		$rid = $this->remote->seed(self::event('Remote B'));

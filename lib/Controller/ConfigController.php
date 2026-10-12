@@ -13,6 +13,7 @@ use OCA\IntegrationM365\Db\CollectionMapper;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
 use OCA\IntegrationM365\Service\OAuthService;
+use OCA\IntegrationM365\Sync\UserSyncService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -29,12 +30,16 @@ use OCP\IURLGenerator;
 use Psr\Log\LoggerInterface;
 
 class ConfigController extends Controller {
+	/** Seconds "Sync now" may work inside the request before handing over to the background job. */
+	public const INLINE_BUDGET_SECONDS = 20;
+
 	public function __construct(
 		string $appName,
 		IRequest $request,
 		private IAppConfig $appConfig,
 		private OAuthService $oauth,
 		private CollectionMapper $collections,
+		private UserSyncService $userSync,
 		private IJobList $jobList,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l,
@@ -115,17 +120,68 @@ class ConfigController extends Controller {
 		return new DataResponse(['connected' => false]);
 	}
 
-	/** Queue a sync for the current user; cron picks it up within minutes. */
+	/**
+	 * "Sync now": run inline with a time budget so the common case (small delta) finishes
+	 * within the request; whatever is left over is queued for the background job.
+	 */
 	#[NoAdminRequired]
 	#[UserRateLimit(limit: 6, period: 60)]
-	public function syncNow(): DataResponse {
+	public function syncNow(bool $inline = true): DataResponse {
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
 		}
-		$args = ['user_id' => $this->userId];
-		if (!$this->jobList->has(UserSyncJob::class, $args)) {
-			$this->jobList->add(UserSyncJob::class, $args);
+		$complete = false;
+		$pairs = [];
+		if ($inline) {
+			@set_time_limit(self::INLINE_BUDGET_SECONDS + 60);
+			try {
+				$results = $this->userSync->syncUser($this->userId, false, null, null, microtime(true) + (float)self::INLINE_BUDGET_SECONDS);
+				$complete = true;
+				foreach ($results as $pairId => $result) {
+					$complete = $complete && !$result->truncated;
+					$pairs[] = ['id' => $pairId, 'truncated' => $result->truncated, 'writes' => $result->writes(), 'errors' => $result->errors, 'conflicts' => $result->conflicts];
+				}
+			} catch (\Throwable $e) {
+				$this->logger->error('inline sync failed', ['app' => Application::APP_ID, 'exception' => $e]);
+			}
 		}
-		return new DataResponse(['queued' => true]);
+		$queued = false;
+		if (!$complete) {
+			$args = ['user_id' => $this->userId];
+			if (!$this->jobList->has(UserSyncJob::class, $args)) {
+				$this->jobList->add(UserSyncJob::class, $args);
+			}
+			$queued = true;
+		}
+		return new DataResponse(['complete' => $complete, 'queued' => $queued, 'pairs' => $pairs]);
+	}
+
+	/**
+	 * Cheap status for polling after "Sync now": no Graph call, only our own tables and the job list.
+	 */
+	#[NoAdminRequired]
+	public function syncStatus(): DataResponse {
+		if ($this->userId === null) {
+			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
+		}
+		$pairs = [];
+		$running = false;
+		foreach ($this->collections->findEnabledByUser($this->userId) as $pair) {
+			$locked = ($pair->getLockedUntil() ?? 0) > time();
+			$running = $running || $locked;
+			$pairs[] = [
+				'id' => $pair->getId(),
+				'type' => $pair->getType(),
+				'remoteId' => $pair->getRemoteId(),
+				'running' => $locked,
+				'lastSync' => $pair->getLastSync(),
+				'lastError' => $pair->getLastError(),
+			];
+		}
+		return new DataResponse([
+			'queued' => $this->jobList->has(UserSyncJob::class, ['user_id' => $this->userId]),
+			'running' => $running,
+			'pairs' => $pairs,
+		]);
 	}
 }
