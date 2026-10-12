@@ -27,3 +27,13 @@ npm ci && npm run build        # or: npm run watch
 ```
 
 Azure: add `http://localhost:8181/apps/integration_m365/oauth-redirect` as a "Web" redirect URI of the app registration used for development.
+
+## Graph calls with a user's stored token
+
+`docker/dev/graph.php` issues raw Graph requests with the token the app stored for a user (handy for seeding test data):
+
+```bash
+docker compose -f docker/compose.yml exec -u www-data app php custom_apps/integration_m365/docker/dev/graph.php mzili GET /me/calendars
+docker compose -f docker/compose.yml exec -u www-data app php custom_apps/integration_m365/docker/dev/graph.php mzili POST /me/calendars '{"name":"nc-test-cal"}'
+docker compose -f docker/compose.yml exec -u www-data app php custom_apps/integration_m365/docker/dev/graph.php mzili LIST /me/contactFolders
+```

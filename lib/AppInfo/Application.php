@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace OCA\IntegrationM365\AppInfo;
 
+use OCA\IntegrationM365\Db\ItemMapper;
+use OCA\IntegrationM365\Db\ItemStoreInterface;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -26,6 +28,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		$context->registerServiceAlias(ItemStoreInterface::class, ItemMapper::class);
 	}
 
 	public function boot(IBootContext $context): void {

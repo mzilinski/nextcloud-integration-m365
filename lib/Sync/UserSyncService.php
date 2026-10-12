@@ -69,14 +69,15 @@ class UserSyncService {
 			} catch (TokenException $e) {
 				$pair->setLastError('reauth_required');
 				$out && $out("pair {$pair->getId()}: " . $e->getMessage());
-				$this->finish($pair, $dryRun);
 				break; // no point in trying the other pairs of this user
 			} catch (GraphException|\Throwable $e) {
 				$pair->setLastError(substr($e->getMessage(), 0, 500));
 				$out && $out("pair {$pair->getId()}: " . $e->getMessage());
 				$this->logger->error('sync of pair failed', ['app' => Application::APP_ID, 'pair' => $pair->getId(), 'exception' => $e]);
+			} finally {
+				// also runs on `break` and when logging itself throws: never leave a stale lock behind
+				$this->finish($pair, $dryRun);
 			}
-			$this->finish($pair, $dryRun);
 		}
 		return $results;
 	}

@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			{{ t('integration_m365', 'Register an application in Microsoft Entra ID (Azure portal → App registrations), add the redirect URI below under "Web", create a client secret and grant the delegated Microsoft Graph permissions Calendars.ReadWrite, Contacts.ReadWrite, Tasks.ReadWrite, User.Read and offline_access.') }}
 		</p>
 		<div class="field">
-			<NcTextField :value="state.redirect_uri"
+			<NcTextField :model-value="state.redirect_uri"
 				:label="t('integration_m365', 'Redirect URI (copy into the Azure app registration)')"
 				readonly
 				@focus="$event.target.select()" />

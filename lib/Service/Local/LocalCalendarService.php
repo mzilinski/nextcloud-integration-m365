@@ -51,7 +51,7 @@ class LocalCalendarService {
 	}
 
 	public static function slug(Collection $pair): string {
-		$base = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $pair->getLocalName() ?: $pair->getRemoteName() ?: $pair->getType()) ?? '');
+		$base = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $pair->getRemoteName() ?: $pair->getLocalName() ?: $pair->getType()) ?? '');
 		$base = trim($base, '-') ?: $pair->getType();
 		return 'm365-' . substr($base, 0, 60) . '-' . substr(hash('crc32b', $pair->getRemoteId()), 0, 6);
 	}

@@ -12,6 +12,7 @@ use OCA\IntegrationM365\Exception\DeltaExpiredException;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\IResponse;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -57,16 +58,18 @@ class GraphClient {
 			}
 			try {
 				$response = $client->request($method, $url, $options);
-				$status = $response->getStatusCode();
 			} catch (\Exception $e) {
+				// OCP's client wraps Guzzle: on 4xx/5xx the exception carries a PSR-7 response, not an IResponse
 				if (!method_exists($e, 'getResponse') || $e->getResponse() === null) {
 					throw new GraphException($e->getMessage(), 0, 'network', $e);
 				}
 				$response = $e->getResponse();
-				$status = $response->getStatusCode();
 			}
+			/** @var IResponse|ResponseInterface $response */
+			$status = $response->getStatusCode();
+			$hdrs = $this->headersOf($response);
 			if (($status === 429 || $status === 503) && $retries < self::MAX_RETRIES) {
-				$wait = (int)($response->getHeader('Retry-After') ?: (1 << $retries));
+				$wait = (int)($hdrs['retry-after'] ?? '') ?: (1 << $retries);
 				$retries++;
 				$this->logger->info('Graph throttled, retrying', ['app' => Application::APP_ID, 'status' => $status, 'wait' => $wait]);
 				sleep(min($wait, self::MAX_RETRY_SLEEP));
@@ -77,10 +80,11 @@ class GraphClient {
 				$refreshed = true;
 				continue;
 			}
+			$bodyStr = (string)$response->getBody();
 			if ($status >= 400) {
-				throw $this->errorFromResponse($response, $status);
+				throw $this->errorFromBody($bodyStr, $status);
 			}
-			return ['status' => $status, 'headers' => $this->headersOf($response), 'body' => (string)$response->getBody()];
+			return ['status' => $status, 'headers' => $hdrs, 'body' => $bodyStr];
 		}
 	}
 
@@ -163,15 +167,18 @@ class GraphClient {
 		return $responses;
 	}
 
-	private function errorFromResponse(IResponse $response, int $status): GraphException {
-		$body = json_decode((string)$response->getBody(), true);
+	private function errorFromBody(string $bodyStr, int $status): GraphException {
+		$body = json_decode($bodyStr, true);
 		$err = is_array($body) ? ($body['error'] ?? []) : [];
 		$message = (string)($err['message'] ?? ('HTTP ' . $status));
 		return new GraphException($message, $status, (string)($err['code'] ?? ''));
 	}
 
-	/** @return array<string,string> lower-cased header names */
-	private function headersOf(IResponse $response): array {
+	/**
+	 * @param IResponse|ResponseInterface $response
+	 * @return array<string,string> lower-cased header names
+	 */
+	private function headersOf(object $response): array {
 		$out = [];
 		foreach ($response->getHeaders() as $name => $values) {
 			$out[strtolower((string)$name)] = is_array($values) ? (string)($values[0] ?? '') : (string)$values;

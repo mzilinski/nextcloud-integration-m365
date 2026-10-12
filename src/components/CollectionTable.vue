@@ -21,18 +21,18 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			<tbody>
 				<tr v-for="row in rows" :key="row.remoteId">
 					<td>
-						<NcCheckboxRadioSwitch :checked="row.enabled"
+						<NcCheckboxRadioSwitch :model-value="row.enabled"
 							:disabled="row.readOnly"
-							@update:checked="v => update(row, 'enabled', v)" />
+							@update:model-value="v => update(row, 'enabled', v)" />
 					</td>
 					<td>
 						{{ row.remoteName }}
 						<span v-if="row.readOnly" class="muted">({{ t('integration_m365', 'read-only') }})</span>
 					</td>
 					<td>
-						<NcTextField :value="row.localName"
+						<NcTextField :model-value="row.localName"
 							:disabled="row.readOnly"
-							@update:value="v => row.localName = v"
+							@update:model-value="v => row.localName = v"
 							@blur="update(row, 'localName', row.localName)" />
 					</td>
 					<td>
