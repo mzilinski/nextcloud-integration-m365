@@ -94,6 +94,38 @@ class SyncEngineTest extends TestCase {
 		self::assertNotNull($this->pair->getLocalSyncToken());
 	}
 
+	public function testImportOnlyNeverWritesRemoteAndRestoresLocalDeletions(): void {
+		$this->pair->setConflictPolicy('import');
+		$this->local->put('a.ics', self::ics('uid-a', 'Local A'));
+		$rid = $this->remote->seed(self::event('Remote B'));
+
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->localCreated);
+		self::assertSame(0, $r->remoteCreated, 'local-born objects must not be uploaded');
+		self::assertCount(1, $this->remote->objects);
+		self::assertStringContainsString('import only', implode("\n", $r->log));
+		$imported = array_values(array_diff(array_keys($this->local->objects), ['a.ics']))[0];
+
+		// local edit of an imported object: ignored, and overwritten by the next remote change
+		$this->local->put($imported, self::ics('ICAL-' . $rid, 'Edited locally'));
+		$r2 = $this->syncOnce();
+		self::assertSame(0, $r2->writes(), implode("\n", $r2->log));
+		self::assertSame([], array_values(array_filter($this->remote->calls, static fn ($c) => $c[0] !== 'changes')), 'no remote write calls');
+		$this->remote->update($rid, ['subject' => 'Remote B2']);
+		$this->syncOnce();
+		self::assertStringContainsString('SUMMARY:Remote B2', $this->local->objects[$imported]['data']);
+
+		// local deletion: correlation is forgotten, the next remote change brings it back
+		$this->local->remove($imported);
+		$r4 = $this->syncOnce();
+		self::assertSame(0, $r4->writes(), implode("\n", $r4->log));
+		self::assertCount(1, $this->remote->objects);
+		$this->remote->update($rid, ['subject' => 'Remote B3']);
+		$r5 = $this->syncOnce();
+		self::assertSame(1, $r5->localCreated);
+		self::assertCount(2, $this->local->objects);
+	}
+
 	public function testLocalEditGoesToRemoteAndRemoteEditComesBack(): void {
 		$this->local->put('a.ics', self::ics('uid-a', 'Local A'));
 		$rid = $this->remote->seed(self::event('Remote B'));

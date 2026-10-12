@@ -31,6 +31,9 @@ Nextcloud database. No data is sent anywhere else.
 * Every 5 minutes a background job asks both sides for changes (local sync token, Graph
   delta link) and copies real changes across. When both sides changed the same object,
   the pair's policy decides (Microsoft 365 wins by default).
+* Collections Microsoft 365 reports as read-only (holidays, birthdays, subscribed ICS
+  calendars) can be enabled as *import only*: they are copied to Nextcloud, local edits
+  are ignored and never sent back.
 * "Sync now" in the personal settings runs the same sync inside the request for up to
   20 seconds (enough for the usual small delta) and hands anything left over to the
   background job; the page shows when it is done.

@@ -6,6 +6,7 @@
 - Two-way sync engine: local sync tokens + Graph delta, correlation table, echo filter, conflict policy, dry run.
 - Calendars, Microsoft To Do lists (as VTODO calendars) and contact folders (with photos).
 - `occ integration_m365:sync` / `integration_m365:pairs`, background job every 5 minutes.
+- Import-only pairs for collections Microsoft 365 reports as not editable (holiday, birthday and subscribed calendars): copied to Nextcloud, nothing is ever written back.
 - "Sync now" runs inline with a 20 s time budget and hands the remainder to the background job; the settings page polls the status and reports the outcome.
 - Fixed: a run that hit the write cap advanced the sync cursors anyway, losing the remaining changes. Truncated runs now keep the cursors and continue next time.
 - Fixed: `ItemStoreInterface` was not bound in the DI container (sync failed outside unit tests).

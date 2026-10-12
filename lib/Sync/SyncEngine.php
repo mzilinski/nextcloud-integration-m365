@@ -29,6 +29,8 @@ use Psr\Log\LoggerInterface;
 class SyncEngine {
 	public const POLICY_REMOTE = 'remote';
 	public const POLICY_LOCAL = 'local';
+	/** One-way Microsoft 365 → Nextcloud, for collections Graph reports as not editable. */
+	public const POLICY_IMPORT = 'import';
 	public const MAX_WRITES = 500;
 	public const MAX_SIZE = 1_000_000;
 
@@ -47,7 +49,7 @@ class SyncEngine {
 		?float $deadline = null,
 	): SyncResult {
 		$r = new SyncResult();
-		$policy = $pair->getConflictPolicy() === self::POLICY_LOCAL ? self::POLICY_LOCAL : self::POLICY_REMOTE;
+		$policy = in_array($pair->getConflictPolicy(), [self::POLICY_LOCAL, self::POLICY_IMPORT], true) ? $pair->getConflictPolicy() : self::POLICY_REMOTE;
 		$pairId = (int)$pair->getId();
 
 		// --- correlations ---------------------------------------------------------
@@ -124,6 +126,23 @@ class SyncEngine {
 					$remoteDeleted[$id] = true;
 				}
 			}
+		}
+		if ($policy === self::POLICY_IMPORT) {
+			// Nothing ever goes to Microsoft 365. Local edits are ignored (the next remote change
+			// overwrites them); a local deletion only forgets the correlation, so the object comes
+			// back with the next remote change or full listing.
+			if ($localChanged !== [] || $localDeleted !== []) {
+				$r->log[] = sprintf('import only: ignoring %d local change(s), %d local deletion(s)', count($localChanged), count($localDeleted));
+			}
+			$localChanged = [];
+			foreach (array_keys($localDeleted) as $uri) {
+				$corr = $byLocal[$uri];
+				if (!$dryRun) {
+					$this->items->deleteItem($corr);
+				}
+				unset($byLocal[$uri], $byRemote[$corr->getRemoteId()], $byUid[$corr->getUid()]);
+			}
+			$localDeleted = [];
 		}
 		$extras = $remoteChanged !== [] ? $remote->extrasFor(array_keys($remoteChanged)) : [];
 

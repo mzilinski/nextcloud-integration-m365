@@ -22,7 +22,6 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				<tr v-for="row in rows" :key="row.remoteId">
 					<td>
 						<NcCheckboxRadioSwitch :model-value="row.enabled"
-							:disabled="row.readOnly"
 							@update:model-value="v => update(row, 'enabled', v)" />
 					</td>
 					<td>
@@ -31,12 +30,14 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					</td>
 					<td>
 						<NcTextField :model-value="row.localName"
-							:disabled="row.readOnly"
 							@update:model-value="v => row.localName = v"
 							@blur="update(row, 'localName', row.localName)" />
 					</td>
 					<td>
-						<select :value="row.conflictPolicy" :disabled="row.readOnly" @change="update(row, 'conflictPolicy', $event.target.value)">
+						<span v-if="row.readOnly" class="muted" :title="t('integration_m365', 'Microsoft 365 does not allow changes to this collection; it is copied to Nextcloud only.')">
+							{{ t('integration_m365', 'Import only') }}
+						</span>
+						<select v-else :value="row.conflictPolicy" @change="update(row, 'conflictPolicy', $event.target.value)">
 							<option value="remote">{{ t('integration_m365', 'Microsoft 365 wins') }}</option>
 							<option value="local">{{ t('integration_m365', 'Nextcloud wins') }}</option>
 						</select>

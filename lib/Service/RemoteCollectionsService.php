@@ -44,4 +44,14 @@ class RemoteCollectionsService {
 		}
 		return $out;
 	}
+
+	/** Whether Graph reports the collection as not editable (subscribed/holiday/birthday calendars). */
+	public function isReadOnly(string $userId, string $type, string $remoteId): bool {
+		foreach ($this->listAll($userId)[$type] ?? [] as $col) {
+			if ($col['id'] === $remoteId) {
+				return $col['readOnly'];
+			}
+		}
+		return false;
+	}
 }

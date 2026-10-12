@@ -82,7 +82,7 @@ class CollectionsController extends Controller {
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
 		}
-		if (!in_array($type, Application::TYPES, true) || !in_array($conflictPolicy, ['remote', 'local'], true) || $remoteId === '') {
+		if (!in_array($type, Application::TYPES, true) || !in_array($conflictPolicy, ['remote', 'local', 'import'], true) || $remoteId === '') {
 			return new DataResponse(['error' => 'invalid parameters'], Http::STATUS_BAD_REQUEST);
 		}
 		try {
@@ -98,6 +98,9 @@ class CollectionsController extends Controller {
 		}
 		$pair->setEnabled($enabled);
 		$pair->setLocalName(trim($localName) !== '' ? trim($localName) : ('M365 ' . $pair->getRemoteName()));
+		if ($this->remote->isReadOnly($this->userId, $type, $remoteId)) {
+			$conflictPolicy = 'import';
+		}
 		$pair->setConflictPolicy($conflictPolicy);
 		if ($pair->getId() === null) {
 			$pair = $this->collections->insert($pair);
