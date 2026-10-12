@@ -45,6 +45,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					<td>
 						<span v-if="row.lastError" class="error" :title="row.lastError">⚠ {{ row.lastError }}</span>
 						<span v-else-if="row.lastSync">{{ new Date(row.lastSync * 1000).toLocaleString() }}</span>
+						<span v-else-if="row.enabled" class="pending" :title="t('integration_m365', 'Enabled, but not synchronised yet. Click “Sync now” or wait for the next background run (every 5 minutes).')">
+							⏳ {{ t('integration_m365', 'Pending') }}
+						</span>
 						<span v-else class="muted">—</span>
 					</td>
 				</tr>
@@ -90,5 +93,6 @@ export default {
 	th, td { text-align: left; padding: 4px 8px; vertical-align: middle; }
 	.muted { color: var(--color-text-maxcontrast); }
 	.error { color: var(--color-error); }
+	.pending { color: var(--color-warning-text, var(--color-warning)); font-weight: bold; }
 }
 </style>

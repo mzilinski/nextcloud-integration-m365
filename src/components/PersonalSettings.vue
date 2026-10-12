@@ -34,6 +34,11 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				<NcButton type="tertiary" :disabled="busy" @click="disconnect">{{ t('integration_m365', 'Disconnect') }}</NcButton>
 			</div>
 			<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
+			<NcNoteCard v-else-if="pendingCount > 0 && !syncing" type="warning">
+				{{ n('integration_m365', '{count} collection is enabled but has not been synchronised yet.', '{count} collections are enabled but have not been synchronised yet.', pendingCount, { count: pendingCount }) }}
+				{{ t('integration_m365', 'The background job picks it up within 5 minutes, or start it right away:') }}
+				<NcButton type="primary" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
+			</NcNoteCard>
 			<CollectionTable v-for="type in state.types" :key="type"
 				:type="type"
 				:rows="collections[type] || []"
@@ -68,6 +73,19 @@ export default {
 	},
 	beforeUnmount() {
 		clearTimeout(this.pollTimer)
+	},
+	computed: {
+		pendingCount() {
+			let n = 0
+			for (const type of Object.keys(this.collections)) {
+				for (const row of this.collections[type]) {
+					if (row.enabled && !row.lastSync && !row.lastError) {
+						n++
+					}
+				}
+			}
+			return n
+		},
 	},
 	mounted() {
 		const params = new URLSearchParams(window.location.search)
