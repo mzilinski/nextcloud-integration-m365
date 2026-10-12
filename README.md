@@ -20,8 +20,10 @@ Nextcloud database. No data is sent anywhere else.
 
 ## How it works
 
-* An admin registers one Entra ID application (admin settings show the redirect URI to
-  paste into Azure). Each user connects their own account; tokens are stored encrypted.
+* An admin registers one Entra ID application and pastes the redirect URI shown in the
+  admin settings into Azure (platform "Web"). Copy it from there: depending on the server
+  setup it contains `/index.php/`, and Entra ID requires an exact match. Each user connects
+  their own account; tokens are stored encrypted.
 * Per enabled collection the app keeps a *pair*: the Graph calendar / contact folder / To
   Do list and a local calendar or address book it creates (`m365-…`). A correlation
   table remembers, per object, the etags last seen on each side and a canonical content
