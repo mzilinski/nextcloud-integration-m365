@@ -176,6 +176,7 @@ class ConfigController extends Controller {
 				'running' => $locked,
 				'lastSync' => $pair->getLastSync(),
 				'lastError' => $pair->getLastError(),
+				'pending' => $pair->getPendingItems(),
 			];
 		}
 		return new DataResponse([

@@ -31,11 +31,11 @@ class Pairs extends Command {
 		$user = $input->getOption('user');
 		$users = $user !== null ? [(string)$user] : $this->collections->findUsersWithEnabledPairs();
 		$table = new Table($output);
-		$table->setHeaders(['id', 'user', 'type', 'remote', 'local uri', 'enabled', 'policy', 'last sync', 'last error']);
+		$table->setHeaders(['id', 'user', 'type', 'remote', 'local uri', 'enabled', 'policy', 'last sync', 'pending', 'last error']);
 		foreach ($users as $userId) {
 			foreach ($this->collections->findByUser($userId) as $p) {
 				$table->addRow([$p->getId(), $userId, $p->getType(), $p->getRemoteName(), $p->getLocalUri(), $p->getEnabled() ? 'yes' : 'no',
-					$p->getConflictPolicy(), $p->getLastSync() ? date('Y-m-d H:i', $p->getLastSync()) : '-', $p->getLastError() ?? '']);
+					$p->getConflictPolicy(), $p->getLastSync() ? date('Y-m-d H:i', $p->getLastSync()) : '-', $p->getPendingItems() !== null ? (string)$p->getPendingItems() : '', $p->getLastError() ?? '']);
 			}
 		}
 		$table->render();

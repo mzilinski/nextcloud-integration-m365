@@ -68,6 +68,7 @@ class CollectionsController extends Controller {
 					'conflictPolicy' => $pair?->getConflictPolicy() ?? 'remote',
 					'lastSync' => $pair?->getLastSync(),
 					'lastError' => $pair?->getLastError(),
+					'pending' => $pair?->getPendingItems(),
 				];
 			}
 		}

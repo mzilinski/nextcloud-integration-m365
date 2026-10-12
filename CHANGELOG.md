@@ -7,6 +7,7 @@
 - Calendars, Microsoft To Do lists (as VTODO calendars) and contact folders (with photos).
 - `occ integration_m365:sync` / `integration_m365:pairs`, background job every 5 minutes.
 - Import-only pairs for collections Microsoft 365 reports as not editable (holiday, birthday and subscribed calendars): copied to Nextcloud, nothing is ever written back.
+- Large initial imports show their progress ("In progress, N objects remaining") and continue automatically: a truncated run queues the next round immediately instead of waiting for the next 5-minute job.
 - Enabled collections that never ran show "Pending" and a notice with a "Sync now" button.
 - "Sync now" runs inline with a 20 s time budget and hands the remainder to the background job; the settings page polls the status and reports the outcome.
 - Fixed: a run that hit the write cap advanced the sync cursors anyway, losing the remaining changes. Truncated runs now keep the cursors and continue next time.

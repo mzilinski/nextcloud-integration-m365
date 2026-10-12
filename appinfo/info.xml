@@ -9,7 +9,7 @@
 An administrator registers one Azure application; each user connects their own Microsoft account and chooses which calendars, contact folders and task lists to synchronise. Changes made in Outlook appear in Nextcloud within minutes and vice versa.
 
 **Data sent to Microsoft:** the calendar, contact and task data you choose to synchronise is read from and written to Microsoft Graph (graph.microsoft.com) on your behalf. Nothing else leaves your server.]]></description>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <licence>agpl</licence>
     <author mail="malte@zilinski.eu" homepage="https://github.com/mzilinski">Malte Zilinski</author>
     <namespace>IntegrationM365</namespace>

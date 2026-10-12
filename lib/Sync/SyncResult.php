@@ -20,6 +20,8 @@ class SyncResult {
 	public int $errors = 0;
 	/** True when the write or time budget ran out: tokens are not advanced, the next run continues. */
 	public bool $truncated = false;
+	/** Objects that still have to be copied when the run was truncated. */
+	public int $remaining = 0;
 	/** @var list<string> */
 	public array $log = [];
 

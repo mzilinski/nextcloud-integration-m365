@@ -69,6 +69,7 @@ class UserSyncService {
 				$result = $this->syncPair($userId, $pair, $dryRun, $out, $deadline);
 				$results[(int)$pair->getId()] = $result;
 				$pair->setLastError($result->errors > 0 ? "{$result->errors} item(s) failed, see log" : null);
+				$pair->setPendingItems($result->truncated ? $result->remaining : null);
 				if (!$dryRun) {
 					$pair->setLastSync(time());
 				}

@@ -145,6 +145,7 @@ class SyncEngine {
 			$localDeleted = [];
 		}
 		$extras = $remoteChanged !== [] ? $remote->extrasFor(array_keys($remoteChanged)) : [];
+		$planned = count($localChanged) + count($localDeleted) + count($remoteChanged) + count($remoteDeleted);
 
 		// --- helpers --------------------------------------------------------------
 		$writes = 0;
@@ -455,6 +456,10 @@ class SyncEngine {
 			if ($rc['deltaLink'] !== null) {
 				$pair->setDeltaLink($rc['deltaLink']);
 			}
+		}
+		if ($r->truncated) {
+			$r->remaining = max(0, $planned - $r->writes());
+			$r->log[] = "{$r->remaining} object(s) remaining";
 		}
 		$r->log[] = $r->summary();
 		return $r;

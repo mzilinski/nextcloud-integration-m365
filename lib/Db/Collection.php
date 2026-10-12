@@ -41,6 +41,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setLastError(?string $error)
  * @method int|null getLockedUntil()
  * @method void setLockedUntil(?int $ts)
+ * @method int|null getPendingItems()
+ * @method void setPendingItems(?int $n)
  */
 class Collection extends Entity implements \JsonSerializable {
 	protected string $userId = '';
@@ -57,6 +59,8 @@ class Collection extends Entity implements \JsonSerializable {
 	protected ?int $lastSync = null;
 	protected ?string $lastError = null;
 	protected ?int $lockedUntil = null;
+	/** Objects still to be copied after a run that hit its budget; null when in sync. */
+	protected ?int $pendingItems = null;
 
 	public function __construct() {
 		$this->addType('id', 'integer');
@@ -65,6 +69,7 @@ class Collection extends Entity implements \JsonSerializable {
 		$this->addType('enabled', 'boolean');
 		$this->addType('lastSync', 'integer');
 		$this->addType('lockedUntil', 'integer');
+		$this->addType('pendingItems', 'integer');
 	}
 
 	public function jsonSerialize(): array {

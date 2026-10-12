@@ -83,6 +83,7 @@ class SyncEngineTest extends TestCase {
 		self::assertNull($this->pair->getLocalSyncToken());
 		self::assertNull($this->pair->getDeltaLink());
 		self::assertStringContainsString('time budget exhausted', implode("\n", $r->log));
+		self::assertSame(2, $r->remaining);
 
 		// the next unbudgeted run picks everything up exactly once
 		$r2 = $this->syncOnce();

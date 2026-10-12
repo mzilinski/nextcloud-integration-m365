@@ -34,9 +34,14 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				<NcButton type="tertiary" :disabled="busy" @click="disconnect">{{ t('integration_m365', 'Disconnect') }}</NcButton>
 			</div>
 			<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
-			<NcNoteCard v-else-if="pendingCount > 0 && !syncing" type="warning">
-				{{ n('integration_m365', '{count} collection is enabled but has not been synchronised yet.', '{count} collections are enabled but have not been synchronised yet.', pendingCount, { count: pendingCount }) }}
-				{{ t('integration_m365', 'The background job picks it up within 5 minutes, or start it right away:') }}
+			<NcNoteCard v-else-if="(pendingCount > 0 || remainingCount > 0) && !syncing" type="warning">
+				<span v-if="pendingCount > 0">
+					{{ n('integration_m365', '{count} collection is enabled but has not been synchronised yet.', '{count} collections are enabled but have not been synchronised yet.', pendingCount, { count: pendingCount }) }}
+				</span>
+				<span v-if="remainingCount > 0">
+					{{ n('integration_m365', 'Import in progress: {count} object still to be copied.', 'Import in progress: {count} objects still to be copied.', remainingCount, { count: remainingCount }) }}
+				</span>
+				{{ t('integration_m365', 'It continues automatically in the background, or start the next round right away:') }}
 				<NcButton type="primary" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
 			</NcNoteCard>
 			<CollectionTable v-for="type in state.types" :key="type"
@@ -82,6 +87,15 @@ export default {
 					if (row.enabled && !row.lastSync && !row.lastError) {
 						n++
 					}
+				}
+			}
+			return n
+		},
+		remainingCount() {
+			let n = 0
+			for (const type of Object.keys(this.collections)) {
+				for (const row of this.collections[type]) {
+					n += row.enabled && row.pending > 0 ? row.pending : 0
 				}
 			}
 			return n
@@ -163,6 +177,7 @@ export default {
 				if (row) {
 					row.lastSync = p.lastSync
 					row.lastError = p.lastError
+					row.pending = p.pending
 				}
 				const touched = p.lastSync !== before[p.remoteId] || (p.lastError && !p.running)
 				if (!touched || p.running) {
@@ -174,6 +189,12 @@ export default {
 			}
 			if (status.running) {
 				this.syncStatusText = this.t('integration_m365', 'Synchronising…')
+			}
+			const remaining = status.pairs.reduce((sum, p) => sum + (p.pending || 0), 0)
+			if (remaining > 0 && (status.queued || status.running)) {
+				// a large import continues in rounds: keep watching, show progress
+				this.syncStatusText = this.n('integration_m365', 'Importing, {count} object remaining…', 'Importing, {count} objects remaining…', remaining, { count: remaining })
+				allDone = false
 			}
 			const finished = once || (!status.queued && !status.running && allDone)
 			const timedOut = Date.now() - startedAt > 15 * 60 * 1000

@@ -44,6 +44,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					</td>
 					<td>
 						<span v-if="row.lastError" class="error" :title="row.lastError">⚠ {{ row.lastError }}</span>
+						<span v-else-if="row.pending > 0" class="pending" :title="t('integration_m365', 'Large collections are copied in rounds. The next round starts automatically; “Sync now” runs it immediately.')">
+							⏳ {{ n('integration_m365', 'In progress, {count} object remaining', 'In progress, {count} objects remaining', row.pending, { count: row.pending }) }}
+						</span>
 						<span v-else-if="row.lastSync">{{ new Date(row.lastSync * 1000).toLocaleString() }}</span>
 						<span v-else-if="row.enabled" class="pending" :title="t('integration_m365', 'Enabled, but not synchronised yet. Click “Sync now” or wait for the next background run (every 5 minutes).')">
 							⏳ {{ t('integration_m365', 'Pending') }}
