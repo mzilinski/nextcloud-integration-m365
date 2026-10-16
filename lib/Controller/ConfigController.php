@@ -27,6 +27,7 @@ use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -46,6 +47,7 @@ class ConfigController extends Controller {
 		private UserSyncService $userSync,
 		private LifecycleService $lifecycle,
 		private IJobList $jobList,
+		private ITimeFactory $timeFactory,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l,
 		private LoggerInterface $logger,
@@ -199,7 +201,7 @@ class ConfigController extends Controller {
 		$pairs = [];
 		$running = false;
 		foreach ($this->collections->findEnabledByUser($this->userId) as $pair) {
-			$locked = ($pair->getLockedUntil() ?? 0) > time();
+			$locked = ($pair->getLockedUntil() ?? 0) > $this->timeFactory->getTime();
 			$running = $running || $locked;
 			$pairs[] = [
 				'id' => $pair->getId(),

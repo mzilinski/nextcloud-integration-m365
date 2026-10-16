@@ -145,8 +145,14 @@ class FakeRemote implements RemoteCollectionInterface {
 		return $this->objects[$id] ?? null;
 	}
 
+	/** @var array<string,true> subjects whose create() throws (per-item error path) */
+	public array $failCreate = [];
+
 	public function create(array $body): array {
 		$this->calls[] = ['create', $body['subject'] ?? $body['title'] ?? ''];
+		if (isset($this->failCreate[(string)($body['subject'] ?? '')])) {
+			throw new \RuntimeException('simulated Graph failure');
+		}
 		$id = 'R' . ++$this->counter;
 		$obj = $body + ['id' => $id, 'iCalUId' => 'ICAL-' . $id];
 		$obj['changeKey'] = 'ck' . ++$this->counter;

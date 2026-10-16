@@ -7,3 +7,4 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 // Test doubles live in one file (not PSR-4 discoverable).
 require_once __DIR__ . '/Unit/Sync/Fakes.php';
+require_once __DIR__ . '/Unit/TestDoubles.php';

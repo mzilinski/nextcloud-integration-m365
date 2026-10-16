@@ -27,6 +27,7 @@ use OCA\IntegrationM365\Service\Remote\RemoteCalendarService;
 use OCA\IntegrationM365\Service\Remote\RemoteCollectionInterface;
 use OCA\IntegrationM365\Service\Remote\RemoteContactsService;
 use OCA\IntegrationM365\Service\Remote\RemoteTasksService;
+use OCP\AppFramework\Utility\ITimeFactory;
 use Psr\Log\LoggerInterface;
 
 /** Runs every enabled pair of one user: locking, service wiring, error bookkeeping. */
@@ -43,6 +44,7 @@ class UserSyncService {
 		private RemoteContactsService $remoteContacts,
 		private OAuthService $oauth,
 		private LifecycleService $lifecycle,
+		private ITimeFactory $timeFactory,
 		private LoggerInterface $logger,
 	) {
 	}
@@ -73,7 +75,7 @@ class UserSyncService {
 				continue;
 			}
 			if (!$dryRun) {
-				$now = time();
+				$now = $this->timeFactory->getTime();
 				if (!$this->collections->tryLock((int)$pair->getId(), $now, $now + self::LOCK_SECONDS)) {
 					$out && $out("pair {$pair->getId()} is locked by another run, skipping");
 					$results[(int)$pair->getId()] = $this->truncatedResult(true);
@@ -91,7 +93,7 @@ class UserSyncService {
 				$pair->setLastError($result->errors > 0 ? SyncError::ITEMS_FAILED . $result->errors : null);
 				$pair->setPendingItems($result->truncated ? $result->remaining : null);
 				if (!$dryRun) {
-					$pair->setLastSync(time());
+					$pair->setLastSync($this->timeFactory->getTime());
 				}
 			} catch (TokenException $e) {
 				$pair->setLastError(SyncError::REAUTH_REQUIRED);

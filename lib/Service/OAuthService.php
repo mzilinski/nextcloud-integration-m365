@@ -188,7 +188,7 @@ class OAuthService {
 		}
 		$expiresAt = $this->secrets->getInt($userId, 'token_expires_at');
 		$accessToken = $this->secrets->getEncrypted($userId, 'access_token');
-		if (!$forceRefresh && $accessToken !== '' && $expiresAt - self::REFRESH_MARGIN > time()) {
+		if (!$forceRefresh && $accessToken !== '' && $expiresAt - self::REFRESH_MARGIN > $this->timeFactory->getTime()) {
 			return $accessToken;
 		}
 		try {
@@ -266,7 +266,7 @@ class OAuthService {
 		if (!empty($token['refresh_token'])) {
 			$this->secrets->setEncrypted($userId, 'refresh_token', (string)$token['refresh_token']);
 		}
-		$this->secrets->setInt($userId, 'token_expires_at', time() + (int)($token['expires_in'] ?? 3600));
+		$this->secrets->setInt($userId, 'token_expires_at', $this->timeFactory->getTime() + (int)($token['expires_in'] ?? 3600));
 	}
 
 	/** @throws GraphException */

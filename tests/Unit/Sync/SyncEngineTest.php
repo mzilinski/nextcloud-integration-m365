@@ -10,6 +10,7 @@ namespace OCA\IntegrationM365\Tests\Unit\Sync;
 use OCA\IntegrationM365\Db\Collection;
 use OCA\IntegrationM365\Service\Mapping\CalendarItemMapper;
 use OCA\IntegrationM365\Service\Mapping\ContactItemMapper;
+use OCA\IntegrationM365\Service\Mapping\TodoItemMapper;
 use OCA\IntegrationM365\Service\Mapping\VObjectUid;
 use OCA\IntegrationM365\Sync\SyncEngine;
 use OCA\IntegrationM365\Sync\SyncResult;
@@ -254,6 +255,134 @@ class SyncEngineTest extends TestCase {
 		self::assertNotNull($this->pair->getDeltaLink());
 		$ann = array_values(array_filter($this->local->objects, static fn ($o) => str_contains($o['data'], 'Ann')))[0]['data'];
 		self::assertStringContainsString(base64_encode('PHOTOBYTES'), $ann);
+	}
+
+	/** Pair a local object with a remote one and let both runs settle; returns the remote id. */
+	private function settled(string $uri = 'a.ics', string $uid = 'uid-a'): string {
+		$before = array_keys($this->remote->objects);
+		$this->local->put($uri, self::ics($uid, 'Original'));
+		$this->syncOnce();
+		$this->syncOnce();
+		return array_values(array_diff(array_keys($this->remote->objects), $before))[0];
+	}
+
+	private function remoteEdit(string $rid, string $subject): void {
+		$this->remote->objects[$rid]['subject'] = $subject;
+		$this->remote->objects[$rid]['changeKey'] = 'ck-' . $subject;
+		$this->remote->journal[] = [$rid, false];
+	}
+
+	public function testBothDeletedOnlyDropsTheCorrelation(): void {
+		$rid = $this->settled();
+		$this->local->remove('a.ics');
+		$this->remote->removeRemote($rid);
+		$r = $this->syncOnce();
+		self::assertSame(0, $r->writes());
+		self::assertStringContainsString('both deleted', implode("\n", $r->log));
+		self::assertCount(0, $this->items->rows);
+	}
+
+	public function testLocalDeleteVersusRemoteChange(): void {
+		// remote wins: the object comes back locally
+		$rid = $this->settled();
+		$this->local->remove('a.ics');
+		$this->remoteEdit($rid, 'Remote edit');
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->conflicts);
+		self::assertSame(1, $r->localCreated);
+		self::assertCount(1, $this->remote->objects);
+		self::assertCount(1, $this->items->rows);
+
+		// local wins: the remote object is deleted despite its change
+		$this->pair->setConflictPolicy('local');
+		$this->syncOnce();
+		$uri = array_key_first($this->local->objects);
+		$this->local->remove($uri);
+		$this->remoteEdit($rid, 'Remote edit 2');
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->remoteDeleted);
+		self::assertSame(0, $r->conflicts);
+		self::assertCount(0, $this->remote->objects);
+		self::assertCount(0, $this->items->rows);
+	}
+
+	public function testRemoteDeleteVersusLocalChange(): void {
+		// remote wins: the local object is deleted despite its edit
+		$rid = $this->settled();
+		$this->local->put('a.ics', self::ics('uid-a', 'Local edit'));
+		$this->remote->removeRemote($rid);
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->localDeleted);
+		self::assertCount(0, $this->local->objects);
+		self::assertCount(0, $this->items->rows);
+
+		// local wins: the edited object is re-created on the remote side
+		$this->pair->setConflictPolicy('local');
+		$rid = $this->settled('b.ics', 'uid-b');
+		$this->local->put('b.ics', self::ics('uid-b', 'Local edit 2'));
+		$this->remote->removeRemote($rid);
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->conflicts);
+		self::assertSame(1, $r->remoteCreated);
+		self::assertSame('Local edit 2', array_values($this->remote->objects)[0]['subject']);
+		self::assertCount(1, $this->items->rows);
+	}
+
+	public function testIdenticalChangesOnBothSidesAreNotAConflictWrite(): void {
+		$rid = $this->settled();
+		$this->local->put('a.ics', self::ics('uid-a', 'Same text'));
+		$this->remoteEdit($rid, 'Same text');
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->conflicts);
+		self::assertSame(0, $r->writes());
+		self::assertStringContainsString('both changed identically', implode("\n", $r->log));
+		self::assertSame(0, $this->syncOnce()->writes());
+	}
+
+	public function testWriteCapTruncatesAndTheNextRunFinishes(): void {
+		for ($i = 0; $i < SyncEngine::MAX_WRITES + 3; $i++) {
+			$this->remote->seed(self::event("Event $i"));
+		}
+		$r = $this->syncOnce();
+		self::assertTrue($r->truncated);
+		self::assertSame(SyncEngine::MAX_WRITES, $r->localCreated);
+		self::assertSame(3, $r->remaining);
+		self::assertNull($this->pair->getDeltaLink(), 'cursor must not advance after a truncated run');
+		$r2 = $this->syncOnce();
+		self::assertFalse($r2->truncated);
+		self::assertSame(3, $r2->localCreated, 'already written objects are absorbed, not duplicated');
+		self::assertCount(SyncEngine::MAX_WRITES + 3, $this->local->objects);
+		self::assertNotNull($this->pair->getDeltaLink());
+	}
+
+	public function testPerItemFailureIsCountedAndDoesNotStopTheRun(): void {
+		$this->local->put('a.ics', self::ics('uid-a', 'Fails'));
+		$this->local->put('b.ics', self::ics('uid-b', 'Works'));
+		$this->remote->failCreate['Fails'] = true;
+		$r = $this->syncOnce();
+		self::assertSame(1, $r->errors);
+		self::assertSame(1, $r->remoteCreated);
+		self::assertStringContainsString('error on a.ics', implode("\n", $r->log));
+		self::assertCount(1, $this->items->rows);
+		// the cursor advanced: a failed object is retried when it changes (or with --full),
+		// not every run (a permanently rejected object would otherwise re-list everything forever)
+		$this->remote->failCreate = [];
+		self::assertSame(0, $this->syncOnce()->remoteCreated);
+		$this->local->put('a.ics', self::ics('uid-a', 'Fails no more'));
+		self::assertSame(1, $this->syncOnce()->remoteCreated);
+	}
+
+	public function testTodoListSyncsThroughTheEngine(): void {
+		$engine = new SyncEngine($this->items, new NullLogger());
+		$mapper = new TodoItemMapper();
+		$this->remote->seed(['title' => 'Buy milk', 'status' => 'notStarted', 'importance' => 'normal', 'createdDateTime' => '2026-07-01T10:00:00Z', 'lastModifiedDateTime' => '2026-07-01T10:00:00Z']);
+		$this->local->put('t.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nBEGIN:VTODO\r\nUID:todo-1\r\nDTSTAMP:20260101T000000Z\r\nSUMMARY:Call Bob\r\nEND:VTODO\r\nEND:VCALENDAR\r\n");
+		$r = $engine->sync($this->pair, $this->local, $this->remote, $mapper);
+		self::assertSame(1, $r->localCreated);
+		self::assertSame(1, $r->remoteCreated);
+		self::assertSame('Call Bob', array_values(array_filter($this->remote->objects, static fn ($o) => isset($o['title']) && $o['title'] === 'Call Bob'))[0]['title']);
+		self::assertStringContainsString('SUMMARY:Buy milk', implode('', array_column($this->local->objects, 'data')));
+		self::assertSame(0, $engine->sync($this->pair, $this->local, $this->remote, $mapper)->writes());
 	}
 
 	public function testSeriesInstancesAreSkipped(): void {

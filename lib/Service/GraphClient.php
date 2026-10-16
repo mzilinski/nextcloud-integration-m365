@@ -126,7 +126,7 @@ class GraphClient {
 	private function backOff(int $status, ?string $retryAfter, int $attempt, ?string $reason): void {
 		$wait = self::retryAfterSeconds($retryAfter);
 		if ($wait === null) {
-			$wait = (float)(1 << $attempt) * (0.5 + (float)mt_rand() / (float)mt_getrandmax()); // 0.5..1, 1..2, 2..4 s
+			$wait = (float)(1 << $attempt) * (0.5 + 0.5 * (float)mt_rand() / (float)mt_getrandmax()); // 0.5..1, 1..2, 2..4 s
 		}
 		if ($wait > self::MAX_RETRY_SLEEP) {
 			throw new GraphException("Graph asks to retry after {$wait} s", $status, 'throttled');
@@ -136,7 +136,7 @@ class GraphClient {
 	}
 
 	/** @return float|null seconds, null when the header is absent or unparseable */
-	public static function retryAfterSeconds(?string $header): ?float {
+	public static function retryAfterSeconds(?string $header, ?int $now = null): ?float {
 		if ($header === null || trim($header) === '') {
 			return null;
 		}
@@ -144,7 +144,7 @@ class GraphClient {
 			return max(0.0, (float)trim($header));
 		}
 		$ts = strtotime($header);
-		return $ts === false ? null : max(0.0, (float)$ts - (float)time());
+		return $ts === false ? null : max(0.0, (float)$ts - (float)($now ?? time()));
 	}
 
 	/** Separate so that tests can skip the real wait. */
