@@ -18,3 +18,4 @@ tests
 vendor
 vite.config.js
 *.map
+screenshots

@@ -47,7 +47,7 @@ class Notifier implements INotifier {
 			->setParsedSubject($l->t('Microsoft 365 synchronisation stopped: reconnect your Microsoft account'))
 			->setParsedMessage($l->t('Microsoft rejected the stored login (for example after a password change). Calendars, contacts and tasks are no longer synchronised until you connect your account again in the personal settings.'))
 			->setLink($settingsUrl)
-			->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath('core', 'categories/integration.svg')));
+			->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg')));
 		return $notification;
 	}
 }

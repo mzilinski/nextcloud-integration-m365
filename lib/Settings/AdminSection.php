@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace OCA\IntegrationM365\Settings;
 
+use OCA\IntegrationM365\AppInfo\Application;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
@@ -31,6 +32,6 @@ class AdminSection implements IIconSection {
 	}
 
 	public function getIcon(): string {
-		return $this->urlGenerator->imagePath('core', 'categories/integration.svg');
+		return $this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg');
 	}
 }
