@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 – 2026-10-16
 - When Microsoft rejects the refresh token (password change, revoked sessions, consent withdrawn) the user now gets a Nextcloud notification linking to the personal settings; it is cleared on reconnect. The Microsoft error (e.g. AADSTS50173) is written to the log.
 - README: setup guide for any tenant (Entra ID app registration, scopes, consent).
 
