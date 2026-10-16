@@ -88,7 +88,7 @@ class ConfigController extends Controller {
 
 	/** Admin: verify the saved registration against Entra ID (client-credentials grant, no user involved). */
 	public function testAdminConfig(): DataResponse {
-		return new DataResponse($this->oauth->testRegistration($this->l));
+		return new DataResponse($this->oauth->testRegistration());
 	}
 
 	/** Personal: where to send the browser to connect a Microsoft account. */

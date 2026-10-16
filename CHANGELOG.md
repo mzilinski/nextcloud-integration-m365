@@ -25,6 +25,10 @@
 - Fixed: the redirect after connecting pointed at a non-existent anchor.
 - Accessibility: checkboxes, name fields and conflict selects carry labels naming the collection, tables are labelled by their heading, column headers have a scope, decorative icons are hidden from screen readers.
 
+### Translations
+- German translation (`de` informal, `de_DE` formal) for every string in the settings pages, notifications and server-side messages; maintained in `tools/l10n-de.py` until the app is on Transifex (`.tx/config` and `.l10nignore` are in place). A unit test checks that every source string is translated and that placeholders survive.
+- Server-side messages that reach the user (login errors, "not configured", "not connected", the default "Contacts" folder name) now go through the Nextcloud translation system.
+
 ### Robustness
 - Fixed: a throttled or failed photo fetch inside a `$batch` was taken as "contact has no photo"; the content hash changed and the local contact was rewritten without its picture. Photos that could not be fetched now defer the contact to the next run; throttled sub-requests are retried with their `Retry-After`.
 - Graph client: retries 429/503/504 for every request and 500/502 plus network errors for idempotent ones, honours `Retry-After` in seconds and HTTP-date form, backs off exponentially with full jitter, and gives up immediately when Graph asks for more than 20 s (the next run tries again). Connect timeout of 10 s.

@@ -18,6 +18,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -30,6 +31,7 @@ class CollectionsController extends Controller {
 		IRequest $request,
 		private CollectionMapper $collections,
 		private RemoteCollectionsService $remote,
+		private IL10N $l,
 		private ?string $userId,
 	) {
 		parent::__construct($appName, $request);
@@ -85,7 +87,7 @@ class CollectionsController extends Controller {
 		}
 		if (!in_array($type, Application::TYPES, true) || !in_array($conflictPolicy, ['remote', 'local', 'import'], true) || $remoteId === ''
 			|| strlen($remoteId) > 512 || mb_strlen($remoteName) > 255 || mb_strlen($localName) > 255) {
-			return new DataResponse(['error' => 'invalid parameters'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['error' => $this->l->t('Invalid parameters')], Http::STATUS_BAD_REQUEST);
 		}
 		try {
 			$readOnly = $this->remote->isReadOnly($this->userId, $type, $remoteId);

@@ -19,3 +19,4 @@ vendor
 vite.config.js
 *.map
 screenshots
+tools

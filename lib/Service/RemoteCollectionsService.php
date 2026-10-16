@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\IntegrationM365\Service;
 
 use OCA\IntegrationM365\AppInfo\Application;
+use OCP\IL10N;
 
 /**
  * Discovery of the user's Graph collections: calendars, contact folders, To Do lists.
@@ -18,6 +19,7 @@ class RemoteCollectionsService {
 
 	public function __construct(
 		private GraphClient $graph,
+		private IL10N $l,
 	) {
 	}
 
@@ -32,7 +34,7 @@ class RemoteCollectionsService {
 				'readOnly' => !($c['canEdit'] ?? true), 'isDefault' => (bool)($c['isDefaultCalendar'] ?? false),
 			];
 		}
-		$out[Application::TYPE_CONTACTS][] = ['id' => self::DEFAULT_CONTACTS, 'name' => 'Contacts', 'readOnly' => false, 'isDefault' => true];
+		$out[Application::TYPE_CONTACTS][] = ['id' => self::DEFAULT_CONTACTS, 'name' => $this->l->t('Contacts'), 'readOnly' => false, 'isDefault' => true];
 		foreach ($this->graph->listAll($userId, '/me/contactFolders?$select=id,displayName') as $f) {
 			$out[Application::TYPE_CONTACTS][] = ['id' => (string)$f['id'], 'name' => (string)($f['displayName'] ?? ''), 'readOnly' => false, 'isDefault' => false];
 		}

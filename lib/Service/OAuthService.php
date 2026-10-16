@@ -42,6 +42,7 @@ class OAuthService {
 		private LoggerInterface $logger,
 		private INotificationManager $notifications,
 		private ITimeFactory $timeFactory,
+		private IL10N $l,
 	) {
 	}
 
@@ -75,20 +76,20 @@ class OAuthService {
 	 *
 	 * @return array{ok: bool, verified: bool, message: string}
 	 */
-	public function testRegistration(IL10N $l): array {
+	public function testRegistration(): array {
 		if (!$this->isConfigured()) {
-			return ['ok' => false, 'verified' => false, 'message' => $l->t('Client ID and client secret are required.')];
+			return ['ok' => false, 'verified' => false, 'message' => $this->l->t('Client ID and client secret are required.')];
 		}
 		$tenant = $this->getTenant();
 		if (in_array($tenant, ['common', 'organizations', 'consumers'], true)) {
-			return ['ok' => true, 'verified' => false, 'message' => $l->t('Settings saved. With tenant "%s" the registration can only be verified by the first user login.', [$tenant])];
+			return ['ok' => true, 'verified' => false, 'message' => $this->l->t('Settings saved. With tenant "%s" the registration can only be verified by the first user login.', [$tenant])];
 		}
 		try {
 			$this->tokenRequest(['grant_type' => 'client_credentials', 'scope' => 'https://graph.microsoft.com/.default']);
 		} catch (GraphException $e) {
-			return ['ok' => false, 'verified' => true, 'message' => EntraErrors::describe($e->graphCode, $e->getMessage(), $l, $this->getRedirectUri())];
+			return ['ok' => false, 'verified' => true, 'message' => EntraErrors::describe($e->graphCode, $e->getMessage(), $this->l, $this->getRedirectUri())];
 		}
-		return ['ok' => true, 'verified' => true, 'message' => $l->t('Entra ID accepted client ID, secret and tenant.')];
+		return ['ok' => true, 'verified' => true, 'message' => $this->l->t('Entra ID accepted client ID, secret and tenant.')];
 	}
 
 	/** The redirect URI the admin must register in Azure ("Web" platform). */
@@ -103,7 +104,7 @@ class OAuthService {
 	/** Build the authorize URL and remember state + PKCE verifier for this user. */
 	public function getAuthorizeUrl(string $userId): string {
 		if (!$this->isConfigured()) {
-			throw new TokenException('Microsoft 365 integration is not configured by the administrator');
+			throw new TokenException($this->l->t('The administrator has not configured the Microsoft 365 integration yet.'));
 		}
 		$state = $this->random->generate(32, ISecureRandom::CHAR_ALPHANUMERIC);
 		$verifier = $this->random->generate(64, ISecureRandom::CHAR_ALPHANUMERIC);
@@ -135,10 +136,10 @@ class OAuthService {
 		$this->secrets->delete($userId, 'oauth_state');
 		$this->secrets->delete($userId, 'oauth_verifier');
 		if ($expected === '' || !hash_equals($expected, $state)) {
-			throw new TokenException('OAuth state mismatch');
+			throw new TokenException($this->l->t('The login could not be verified (state mismatch). Please try again.'));
 		}
 		if ($code === '') {
-			throw new TokenException('No authorization code received');
+			throw new TokenException($this->l->t('Microsoft did not return an authorization code. Please try again.'));
 		}
 		$token = $this->tokenRequest([
 			'grant_type' => 'authorization_code',
@@ -183,7 +184,7 @@ class OAuthService {
 	public function getAccessToken(string $userId, bool $forceRefresh = false): string {
 		$refreshToken = $this->secrets->getEncrypted($userId, 'refresh_token');
 		if ($refreshToken === '') {
-			throw new TokenException('Microsoft account not connected');
+			throw new TokenException($this->l->t('No Microsoft account is connected.'));
 		}
 		$expiresAt = $this->secrets->getInt($userId, 'token_expires_at');
 		$accessToken = $this->secrets->getEncrypted($userId, 'access_token');
@@ -207,7 +208,7 @@ class OAuthService {
 			if (in_array($e->graphCode, ['invalid_grant', 'interaction_required'], true)) {
 				// Dead refresh token (revoked, > 90 days idle, consent withdrawn): needs a new login.
 				$this->markReauthRequired($userId, $e->graphCode, $e->getMessage());
-				throw new TokenException('Reconnect your Microsoft account', 0, $e);
+				throw new TokenException($this->l->t('Microsoft rejected the stored login: connect your account again'), 0, $e);
 			}
 			throw $e;
 		}
@@ -293,7 +294,7 @@ class OAuthService {
 			);
 		}
 		if (!is_array($body) || empty($body['access_token'])) {
-			throw new GraphException('Token endpoint returned no access token', 0, 'oauth');
+			throw new GraphException($this->l->t('Microsoft returned no access token.'), 0, 'oauth');
 		}
 		return $body;
 	}

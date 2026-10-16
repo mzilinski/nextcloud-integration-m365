@@ -1,0 +1,6 @@
+# Not scanned by the Nextcloud translation tool: build output, dependencies, dev helpers.
+js/
+vendor/
+node_modules/
+docker/
+tests/
