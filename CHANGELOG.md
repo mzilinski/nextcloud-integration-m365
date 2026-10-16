@@ -13,6 +13,18 @@
 - New `occ integration_m365:reset --pair ID | --user UID | --all`: forget cursors and correlations of one pair (next run re-pairs by UID), purge one user, or wipe everything before `app:remove`. Local calendars and address books are never touched.
 - `last_error` now holds machine-readable codes (`reauth_required`, `config_error`, `local_missing`, `items_failed:N`) so the UI can translate them.
 
+### App Store listing
+- App icon (neutral two-way sync glyph, `img/app.svg` / `img/app-dark.svg`), used for the settings sections and the notification instead of the generic core icon.
+- `info.xml`: screenshots (placeholders in `screenshots/`, to be replaced by real captures), user and admin documentation links, repository, requirements (cron, Entra ID registration) in the description.
+
+### Admin and user experience
+- Admin settings: "Test connection" verifies client ID, secret and tenant against Entra ID without a user (client-credentials grant; multi-tenant settings can only be verified by a user login), copy button for the redirect URI, optional client-secret expiry date with a warning 30 days ahead, link to the admin guide, and a notice when a registration change asked users to reconnect.
+- Entra ID errors during login and in the connection test are mapped to actionable messages (redirect URI mismatch, missing consent, wrong client ID or tenant, wrong or expired secret, account type not allowed, Conditional Access, revoked login) with the AADSTS number kept for reference; the error no longer stays in the address bar.
+- Personal settings: disconnect asks whether to keep the collection settings or forget the synchronisation state; "Sync now" reports failures (reconnect needed, admin configuration, server error) instead of pretending the job was queued; error codes in the tables are shown as translated text; dates follow the Nextcloud locale.
+- Fixed: buttons used the nextcloud/vue 8 `type` prop and therefore all rendered as secondary buttons; `variant` is the nextcloud/vue 9 prop.
+- Fixed: the redirect after connecting pointed at a non-existent anchor.
+- Accessibility: checkboxes, name fields and conflict selects carry labels naming the collection, tables are labelled by their heading, column headers have a scope, decorative icons are hidden from screen readers.
+
 ### Robustness
 - Fixed: a throttled or failed photo fetch inside a `$batch` was taken as "contact has no photo"; the content hash changed and the local contact was rewritten without its picture. Photos that could not be fetched now defer the contact to the next run; throttled sub-requests are retried with their `Retry-After`.
 - Graph client: retries 429/503/504 for every request and 500/502 plus network errors for idempotent ones, honours `Retry-After` in seconds and HTTP-date form, backs off exponentially with full jitter, and gives up immediately when Graph asks for more than 20 s (the next run tries again). Connect timeout of 10 s.

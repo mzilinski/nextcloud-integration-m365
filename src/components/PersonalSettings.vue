@@ -12,7 +12,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			<p class="settings-hint">
 				{{ t('integration_m365', 'Connect your Microsoft account to synchronise calendars, contacts and To Do lists with Nextcloud in both directions.') }}
 			</p>
-			<NcButton type="primary" :disabled="busy" @click="connect">
+			<NcButton variant="primary" :disabled="busy" @click="connect">
 				{{ t('integration_m365', 'Connect to Microsoft 365') }}
 			</NcButton>
 		</template>
@@ -21,8 +21,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				{{ t('integration_m365', 'Connected as {name} ({principal})', { name: state.account.name, principal: state.account.principal }) }}
 			</p>
 			<NcNoteCard v-if="state.account.reauthRequired" type="error">
-				{{ t('integration_m365', 'Microsoft rejected the stored login. Please connect again.') }}
-				<NcButton @click="connect">{{ t('integration_m365', 'Connect again') }}</NcButton>
+				{{ t('integration_m365', 'Microsoft rejected the stored login (for example after a password change). Please connect again.') }}
+				<NcButton variant="primary" :disabled="busy" @click="connect">{{ t('integration_m365', 'Connect again') }}</NcButton>
 			</NcNoteCard>
 			<div class="actions">
 				<NcButton :disabled="busy || syncing" @click="syncNow">
@@ -31,8 +31,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					</template>
 					{{ syncing ? syncStatusText : t('integration_m365', 'Sync now') }}
 				</NcButton>
-				<NcButton type="tertiary" :disabled="busy" @click="disconnect">{{ t('integration_m365', 'Disconnect') }}</NcButton>
+				<NcButton variant="tertiary" :disabled="busy" @click="showDisconnect = true">{{ t('integration_m365', 'Disconnect') }}</NcButton>
 			</div>
+			<NcDialog :open="showDisconnect"
+				:name="t('integration_m365', 'Disconnect Microsoft account')"
+				:message="t('integration_m365', 'Synchronisation stops. Calendars, contacts and tasks already in Nextcloud stay. Keep the collection settings to resume later, or forget them together with the synchronisation state.')"
+				:buttons="disconnectButtons"
+				@update:open="v => showDisconnect = v" />
 			<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
 			<NcNoteCard v-else-if="(pendingCount > 0 || remainingCount > 0) && !syncing" type="warning">
 				<span v-if="pendingCount > 0">
@@ -42,7 +47,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					{{ n('integration_m365', 'Import in progress: {count} object still to be copied.', 'Import in progress: {count} objects still to be copied.', remainingCount, { count: remainingCount }) }}
 				</span>
 				{{ t('integration_m365', 'It continues automatically in the background, or start the next round right away:') }}
-				<NcButton type="primary" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
+				<NcButton variant="primary" :disabled="busy || syncing" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
 			</NcNoteCard>
 			<CollectionTable v-for="type in state.types" :key="type"
 				:type="type"
@@ -58,12 +63,13 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
 import { showSuccess, showError } from '@nextcloud/dialogs'
-import { NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcNoteCard, NcLoadingIcon, NcDialog } from '@nextcloud/vue'
 import CollectionTable from './CollectionTable.vue'
+import { describeSyncError } from '../errors.js'
 
 export default {
 	name: 'PersonalSettings',
-	components: { NcButton, NcNoteCard, NcLoadingIcon, CollectionTable },
+	components: { NcButton, NcNoteCard, NcLoadingIcon, NcDialog, CollectionTable },
 	data() {
 		return {
 			state: loadState('integration_m365', 'user-config'),
@@ -74,12 +80,20 @@ export default {
 			syncing: false,
 			syncStatusText: '',
 			pollTimer: null,
+			showDisconnect: false,
 		}
 	},
 	beforeUnmount() {
 		clearTimeout(this.pollTimer)
 	},
 	computed: {
+		disconnectButtons() {
+			return [
+				{ label: this.t('integration_m365', 'Cancel'), callback: () => { this.showDisconnect = false } },
+				{ label: this.t('integration_m365', 'Disconnect, keep settings'), variant: 'secondary', callback: () => this.disconnect(false) },
+				{ label: this.t('integration_m365', 'Disconnect and forget sync state'), variant: 'error', callback: () => this.disconnect(true) },
+			]
+		},
 		pendingCount() {
 			let n = 0
 			for (const type of Object.keys(this.collections)) {
@@ -106,7 +120,16 @@ export default {
 		if (params.get('m365') === 'connected') {
 			showSuccess(this.t('integration_m365', 'Microsoft account connected'))
 		} else if (params.get('m365') === 'error') {
-			showError(this.t('integration_m365', 'Connecting failed: {message}', { message: params.get('message') || '' }))
+			// the message was translated and mapped (AADSTS codes) by the server
+			this.error = this.t('integration_m365', 'Connecting failed: {message}', { message: params.get('message') || '' })
+			showError(this.error)
+		}
+		if (params.has('m365')) {
+			// a reload must not repeat the toast, and the error text does not belong in the address bar
+			params.delete('m365')
+			params.delete('message')
+			const query = params.toString()
+			window.history.replaceState(null, '', window.location.pathname + (query ? '?' + query : '') + window.location.hash)
 		}
 		if (this.state.connected) {
 			this.loadCollections()
@@ -123,13 +146,18 @@ export default {
 				this.busy = false
 			}
 		},
-		async disconnect() {
+		async disconnect(purge) {
+			this.showDisconnect = false
 			this.busy = true
 			try {
-				await axios.post(generateUrl('/apps/integration_m365/disconnect'), { purge: false })
+				await axios.post(generateUrl('/apps/integration_m365/disconnect'), { purge })
 				this.state.connected = false
 				this.state.account = null
 				this.collections = {}
+				this.error = ''
+				showSuccess(purge
+					? this.t('integration_m365', 'Microsoft account disconnected, synchronisation state forgotten')
+					: this.t('integration_m365', 'Microsoft account disconnected'))
 			} catch (e) {
 				showError(this.t('integration_m365', 'Disconnecting failed'))
 			} finally {
@@ -149,6 +177,15 @@ export default {
 			try {
 				data = (await axios.post(generateUrl('/apps/integration_m365/sync-now'), { inline: true }, { timeout: 120000 })).data
 			} catch (e) {
+				if (e.response) {
+					// the server answered: a real failure, not something the background job would fix
+					this.syncing = false
+					if (e.response.data?.error === 'reauth_required') {
+						this.state.account.reauthRequired = true
+					}
+					showError(describeSyncError(e.response.data?.error || 'failed'))
+					return
+				}
 				// gateway timeout or similar: the server keeps working, fall back to polling
 				data = { complete: false, queued: true }
 			}
@@ -183,8 +220,8 @@ export default {
 				if (!touched || p.running) {
 					allDone = false
 				}
-				if (p.lastError && !p.running) {
-					errors.push(p.lastError)
+				if (p.lastError && !p.running && !errors.includes(describeSyncError(p.lastError))) {
+					errors.push(describeSyncError(p.lastError))
 				}
 			}
 			if (status.running) {
@@ -220,9 +257,13 @@ export default {
 				const { data } = await axios.get(generateUrl('/apps/integration_m365/collections'))
 				this.collections = data
 			} catch (e) {
-				this.error = e.response?.data?.error || this.t('integration_m365', 'Could not load your Microsoft 365 collections')
 				if (e.response?.data?.reauthRequired) {
 					this.state.account.reauthRequired = true
+					this.error = describeSyncError('reauth_required')
+				} else {
+					this.error = e.response?.data?.error
+						? this.t('integration_m365', 'Could not load your Microsoft 365 collections: {message}', { message: e.response.data.error })
+						: this.t('integration_m365', 'Could not load your Microsoft 365 collections')
 				}
 			} finally {
 				this.loading = false
@@ -239,7 +280,12 @@ export default {
 				})
 				row.id = data.id
 			} catch (e) {
-				showError(this.t('integration_m365', 'Could not save the collection settings'))
+				if (e.response?.data?.reauthRequired) {
+					this.state.account.reauthRequired = true
+				}
+				showError(e.response?.data?.error
+					? this.t('integration_m365', 'Could not save the collection settings: {message}', { message: e.response.data.error })
+					: this.t('integration_m365', 'Could not save the collection settings'))
 			}
 		},
 	},

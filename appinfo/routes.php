@@ -8,6 +8,7 @@ declare(strict_types=1);
 return [
 	'routes' => [
 		['name' => 'config#setAdminConfig', 'url' => '/admin-config', 'verb' => 'PUT'],
+		['name' => 'config#testAdminConfig', 'url' => '/admin-config/test', 'verb' => 'POST'],
 		['name' => 'config#getOauthUrl', 'url' => '/oauth-url', 'verb' => 'GET'],
 		['name' => 'config#oauthRedirect', 'url' => '/oauth-redirect', 'verb' => 'GET'],
 		['name' => 'config#disconnect', 'url' => '/disconnect', 'verb' => 'POST'],

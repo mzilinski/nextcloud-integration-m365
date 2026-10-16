@@ -10,10 +10,13 @@ namespace OCA\IntegrationM365\Controller;
 use OCA\IntegrationM365\AppInfo\Application;
 use OCA\IntegrationM365\BackgroundJob\UserSyncJob;
 use OCA\IntegrationM365\Db\CollectionMapper;
+use OCA\IntegrationM365\Exception\ConfigurationException;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
+use OCA\IntegrationM365\Service\EntraErrors;
 use OCA\IntegrationM365\Service\LifecycleService;
 use OCA\IntegrationM365\Service\OAuthService;
+use OCA\IntegrationM365\Sync\SyncError;
 use OCA\IntegrationM365\Sync\UserSyncService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -60,13 +63,20 @@ class ConfigController extends Controller {
 	public function setAdminConfig(array $values): DataResponse {
 		$before = [$this->oauth->getClientId(), $this->oauth->getTenant()];
 		foreach ($values as $key => $value) {
-			if (!in_array($key, ['client_id', 'client_secret', 'tenant'], true)) {
+			if (!in_array($key, ['client_id', 'client_secret', 'tenant', 'secret_expires'], true)) {
 				continue;
 			}
 			if ($key === 'client_secret' && $value === 'dummySecret') {
 				continue;
 			}
-			$this->appConfig->setAppValueString($key, trim((string)$value), lazy: true, sensitive: $key === 'client_secret');
+			$value = trim((string)$value);
+			if ($key === 'secret_expires' && $value !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+				return new DataResponse(['error' => 'invalid date'], Http::STATUS_BAD_REQUEST);
+			}
+			if (($key === 'client_id' && strlen($value) > 64) || ($key === 'tenant' && strlen($value) > 255) || ($key === 'client_secret' && strlen($value) > 512)) {
+				return new DataResponse(['error' => 'invalid parameters'], Http::STATUS_BAD_REQUEST);
+			}
+			$this->appConfig->setAppValueString($key, $value, lazy: true, sensitive: $key === 'client_secret');
 		}
 		$invalidated = 0;
 		if ($before[0] !== '' && $before !== [$this->oauth->getClientId(), $this->oauth->getTenant()]) {
@@ -74,6 +84,11 @@ class ConfigController extends Controller {
 			$invalidated = $this->lifecycle->invalidateAllTokens('client id or tenant changed');
 		}
 		return new DataResponse(['configured' => $this->oauth->isConfigured(), 'invalidatedUsers' => $invalidated]);
+	}
+
+	/** Admin: verify the saved registration against Entra ID (client-credentials grant, no user involved). */
+	public function testAdminConfig(): DataResponse {
+		return new DataResponse($this->oauth->testRegistration($this->l));
 	}
 
 	/** Personal: where to send the browser to connect a Microsoft account. */
@@ -99,14 +114,17 @@ class ConfigController extends Controller {
 			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode($this->l->t('No logged in user')));
 		}
 		if ($error !== '') {
-			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode($error_description !== '' ? $error_description : $error));
+			$this->logger->info('Microsoft 365 login returned an error', ['app' => Application::APP_ID, 'uid' => $this->userId, 'error' => $error, 'aadsts' => EntraErrors::code($error_description)]);
+			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode(EntraErrors::describe($error, $error_description, $this->l, $this->oauth->getRedirectUri())));
 		}
 		$previous = $this->oauth->getAccountInfo($this->userId)['principal'];
 		try {
 			$me = $this->oauth->handleRedirect($this->userId, $code, $state);
-		} catch (TokenException|GraphException $e) {
-			$this->logger->warning('Microsoft 365 OAuth redirect failed', ['app' => Application::APP_ID, 'exception' => $e]);
+		} catch (TokenException $e) {
 			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode($e->getMessage()));
+		} catch (GraphException $e) {
+			$this->logger->warning('Microsoft 365 OAuth redirect failed', ['app' => Application::APP_ID, 'uid' => $this->userId, 'error' => $e->graphCode, 'aadsts' => EntraErrors::code($e->getMessage())]);
+			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode(EntraErrors::describe($e->graphCode, $e->getMessage(), $this->l, $this->oauth->getRedirectUri())));
 		}
 		$principal = (string)($me['userPrincipalName'] ?? $me['mail'] ?? '');
 		if ($previous !== '' && $principal !== '' && strcasecmp($previous, $principal) !== 0) {
@@ -137,6 +155,9 @@ class ConfigController extends Controller {
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
 		}
+		if ($this->oauth->getAccountInfo($this->userId)['reauthRequired']) {
+			return new DataResponse(['error' => SyncError::REAUTH_REQUIRED], Http::STATUS_BAD_REQUEST);
+		}
 		$complete = false;
 		$pairs = [];
 		if ($inline) {
@@ -148,8 +169,12 @@ class ConfigController extends Controller {
 					$complete = $complete && !$result->truncated;
 					$pairs[] = ['id' => $pairId, 'truncated' => $result->truncated, 'writes' => $result->writes(), 'errors' => $result->errors, 'conflicts' => $result->conflicts];
 				}
+			} catch (ConfigurationException) {
+				return new DataResponse(['error' => SyncError::CONFIG_ERROR], Http::STATUS_BAD_REQUEST);
 			} catch (\Throwable $e) {
-				$this->logger->error('inline sync failed', ['app' => Application::APP_ID, 'exception' => $e]);
+				// not "queued": the user would wait 15 minutes for a job that fails the same way
+				$this->logger->error('inline sync failed', ['app' => Application::APP_ID, 'uid' => $this->userId, 'exception' => $e]);
+				return new DataResponse(['error' => 'failed'], Http::STATUS_INTERNAL_SERVER_ERROR);
 			}
 		}
 		$queued = false;

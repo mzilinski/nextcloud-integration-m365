@@ -26,6 +26,8 @@ class Admin implements ISettings {
 			'client_secret' => $this->oauth->getClientSecret() === '' ? '' : 'dummySecret',
 			'tenant' => $this->oauth->getTenant(),
 			'redirect_uri' => $this->oauth->getRedirectUri(),
+			'secret_expires' => $this->oauth->getSecretExpires(),
+			'scopes' => OAuthService::SCOPES,
 		]);
 		return new TemplateResponse(Application::APP_ID, 'adminSettings');
 	}

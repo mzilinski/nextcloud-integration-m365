@@ -15,6 +15,7 @@ use OCA\IntegrationM365\Notification\Notifier;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Http\Client\IClientService;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\Security\ISecureRandom;
@@ -59,6 +60,35 @@ class OAuthService {
 
 	public function isConfigured(): bool {
 		return $this->getClientId() !== '' && $this->getClientSecret() !== '';
+	}
+
+	/** Admin-entered expiry date of the client secret (YYYY-MM-DD) or ''. Entra secrets live 24 months at most. */
+	public function getSecretExpires(): string {
+		return $this->appConfig->getAppValueString('secret_expires', lazy: true);
+	}
+
+	/**
+	 * Verify client id, secret and tenant without a user: a client-credentials token
+	 * request against the tenant. Multi-tenant settings ("common", "organizations",
+	 * "consumers") have no token endpoint for that grant, so they can only be checked
+	 * by a user login.
+	 *
+	 * @return array{ok: bool, verified: bool, message: string}
+	 */
+	public function testRegistration(IL10N $l): array {
+		if (!$this->isConfigured()) {
+			return ['ok' => false, 'verified' => false, 'message' => $l->t('Client ID and client secret are required.')];
+		}
+		$tenant = $this->getTenant();
+		if (in_array($tenant, ['common', 'organizations', 'consumers'], true)) {
+			return ['ok' => true, 'verified' => false, 'message' => $l->t('Settings saved. With tenant "%s" the registration can only be verified by the first user login.', [$tenant])];
+		}
+		try {
+			$this->tokenRequest(['grant_type' => 'client_credentials', 'scope' => 'https://graph.microsoft.com/.default']);
+		} catch (GraphException $e) {
+			return ['ok' => false, 'verified' => true, 'message' => EntraErrors::describe($e->graphCode, $e->getMessage(), $l, $this->getRedirectUri())];
+		}
+		return ['ok' => true, 'verified' => true, 'message' => $l->t('Entra ID accepted client ID, secret and tenant.')];
 	}
 
 	/** The redirect URI the admin must register in Azure ("Web" platform). */
