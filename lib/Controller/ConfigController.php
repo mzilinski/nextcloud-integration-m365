@@ -12,6 +12,7 @@ use OCA\IntegrationM365\BackgroundJob\UserSyncJob;
 use OCA\IntegrationM365\Db\CollectionMapper;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
+use OCA\IntegrationM365\Service\LifecycleService;
 use OCA\IntegrationM365\Service\OAuthService;
 use OCA\IntegrationM365\Sync\UserSyncService;
 use OCP\AppFramework\Controller;
@@ -40,6 +41,7 @@ class ConfigController extends Controller {
 		private OAuthService $oauth,
 		private CollectionMapper $collections,
 		private UserSyncService $userSync,
+		private LifecycleService $lifecycle,
 		private IJobList $jobList,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l,
@@ -56,6 +58,7 @@ class ConfigController extends Controller {
 	 */
 	#[PasswordConfirmationRequired]
 	public function setAdminConfig(array $values): DataResponse {
+		$before = [$this->oauth->getClientId(), $this->oauth->getTenant()];
 		foreach ($values as $key => $value) {
 			if (!in_array($key, ['client_id', 'client_secret', 'tenant'], true)) {
 				continue;
@@ -65,7 +68,12 @@ class ConfigController extends Controller {
 			}
 			$this->appConfig->setAppValueString($key, trim((string)$value), lazy: true, sensitive: $key === 'client_secret');
 		}
-		return new DataResponse(['configured' => $this->oauth->isConfigured()]);
+		$invalidated = 0;
+		if ($before[0] !== '' && $before !== [$this->oauth->getClientId(), $this->oauth->getTenant()]) {
+			// tokens were issued for the old registration; a new secret alone keeps them valid
+			$invalidated = $this->lifecycle->invalidateAllTokens('client id or tenant changed');
+		}
+		return new DataResponse(['configured' => $this->oauth->isConfigured(), 'invalidatedUsers' => $invalidated]);
 	}
 
 	/** Personal: where to send the browser to connect a Microsoft account. */
@@ -93,13 +101,20 @@ class ConfigController extends Controller {
 		if ($error !== '') {
 			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode($error_description !== '' ? $error_description : $error));
 		}
+		$previous = $this->oauth->getAccountInfo($this->userId)['principal'];
 		try {
-			$this->oauth->handleRedirect($this->userId, $code, $state);
+			$me = $this->oauth->handleRedirect($this->userId, $code, $state);
 		} catch (TokenException|GraphException $e) {
 			$this->logger->warning('Microsoft 365 OAuth redirect failed', ['app' => Application::APP_ID, 'exception' => $e]);
 			return new RedirectResponse($settingsUrl . '?m365=error&message=' . urlencode($e->getMessage()));
 		}
-		return new RedirectResponse($settingsUrl . '?m365=connected#integration_m365');
+		$principal = (string)($me['userPrincipalName'] ?? $me['mail'] ?? '');
+		if ($previous !== '' && $principal !== '' && strcasecmp($previous, $principal) !== 0) {
+			// a different mailbox: the stored remote ids, delta links and correlations are meaningless
+			$this->lifecycle->forgetPairs($this->userId);
+			$this->logger->info('Microsoft 365 account changed, pairs reset', ['app' => Application::APP_ID, 'uid' => $this->userId]);
+		}
+		return new RedirectResponse($settingsUrl . '?m365=connected#m365_personal');
 	}
 
 	/** Forget the tokens (and optionally the sync state) of the current user. */
@@ -108,15 +123,7 @@ class ConfigController extends Controller {
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
 		}
-		$this->oauth->disconnect($this->userId);
-		if ($purge) {
-			$this->collections->deleteByUser($this->userId);
-		} else {
-			foreach ($this->collections->findByUser($this->userId) as $pair) {
-				$pair->setEnabled(false);
-				$this->collections->update($pair);
-			}
-		}
+		$this->lifecycle->disconnect($this->userId, $purge);
 		return new DataResponse(['connected' => false]);
 	}
 

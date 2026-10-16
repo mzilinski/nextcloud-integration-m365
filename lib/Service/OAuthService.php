@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\IntegrationM365\Service;
 
 use OCA\IntegrationM365\AppInfo\Application;
+use OCA\IntegrationM365\Exception\ConfigurationException;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
 use OCA\IntegrationM365\Notification\Notifier;
@@ -147,6 +148,7 @@ class OAuthService {
 	 * A valid access token, refreshed if it expires soon.
 	 *
 	 * @throws TokenException when the user is not connected or the refresh token is dead
+	 * @throws ConfigurationException when Entra ID rejects the app registration (admin problem)
 	 */
 	public function getAccessToken(string $userId, bool $forceRefresh = false): string {
 		$refreshToken = $this->secrets->getEncrypted($userId, 'refresh_token');
@@ -165,9 +167,16 @@ class OAuthService {
 				'scope' => self::SCOPES,
 			]);
 		} catch (GraphException $e) {
-			if (in_array($e->graphCode, ['invalid_grant', 'interaction_required', 'invalid_client'], true)) {
+			if (in_array($e->graphCode, ['invalid_client', 'unauthorized_client'], true)) {
+				// Bad secret / unknown client id / wrong tenant: reconnecting would not help anyone.
+				$this->logger->error('Entra ID rejected the Microsoft 365 app registration, check client id, secret and tenant in the admin settings', [
+					'app' => Application::APP_ID, 'error' => $e->graphCode, 'reason' => $e->getMessage(),
+				]);
+				throw new ConfigurationException($e->getMessage(), $e->graphCode, $e);
+			}
+			if (in_array($e->graphCode, ['invalid_grant', 'interaction_required'], true)) {
 				// Dead refresh token (revoked, > 90 days idle, consent withdrawn): needs a new login.
-				$this->markReauthRequired($userId, $e);
+				$this->markReauthRequired($userId, $e->graphCode, $e->getMessage());
 				throw new TokenException('Reconnect your Microsoft account', 0, $e);
 			}
 			throw $e;
@@ -177,10 +186,18 @@ class OAuthService {
 	}
 
 	public function disconnect(string $userId): void {
-		foreach (['access_token', 'refresh_token', 'token_expires_at', 'user_name', 'user_principal', 'oauth_state', 'oauth_verifier'] as $key) {
+		$this->forgetTokens($userId);
+		foreach (['user_name', 'user_principal', 'oauth_state', 'oauth_verifier'] as $key) {
 			$this->secrets->delete($userId, $key);
 		}
 		$this->clearReauthRequired($userId);
+	}
+
+	/** Drop the tokens only; account name and pairs stay (used when the app registration changes). */
+	public function forgetTokens(string $userId): void {
+		foreach (['access_token', 'refresh_token', 'token_expires_at'] as $key) {
+			$this->secrets->delete($userId, $key);
+		}
 	}
 
 	/**
@@ -188,11 +205,11 @@ class OAuthService {
 	 * fail every 5 minutes with nothing but a log line (the AADSTS reason is logged
 	 * so an admin can tell a password change from a revoked consent).
 	 */
-	private function markReauthRequired(string $userId, GraphException $e): void {
+	public function markReauthRequired(string $userId, string $code, string $reason): void {
 		$first = $this->secrets->getPlain($userId, 'reauth_required') !== '1';
 		$this->secrets->setPlain($userId, 'reauth_required', '1');
 		$this->logger->warning('Microsoft 365 refresh token rejected for user, reconnect required', [
-			'app' => Application::APP_ID, 'uid' => $userId, 'error' => $e->graphCode, 'reason' => $e->getMessage(),
+			'app' => Application::APP_ID, 'uid' => $userId, 'error' => $code, 'reason' => $reason,
 		]);
 		if (!$first) {
 			return;

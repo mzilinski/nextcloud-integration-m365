@@ -57,6 +57,27 @@ class CollectionMapper extends QBMapper {
 		return $this->findEntity($qb);
 	}
 
+	/** @throws DoesNotExistException */
+	public function find(int $id): Collection {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)));
+		return $this->findEntity($qb);
+	}
+
+	/** @return list<string> user ids that have at least one pair, enabled or not */
+	public function findUsersWithPairs(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectDistinct('user_id')->from($this->getTableName());
+		$result = $qb->executeQuery();
+		$users = [];
+		while (($row = $result->fetch()) !== false) {
+			$users[] = (string)$row['user_id'];
+		}
+		$result->closeCursor();
+		return $users;
+	}
+
 	/** @return string[] user ids that have at least one enabled pair */
 	public function findUsersWithEnabledPairs(): array {
 		$qb = $this->db->getQueryBuilder();

@@ -97,6 +97,9 @@ class CollectionsController extends Controller {
 		if ($remoteName !== '') {
 			$pair->setRemoteName($remoteName);
 		}
+		if ($enabled && !$pair->getEnabled()) {
+			$pair->setLastError(null); // a fresh start after "local collection gone" or a config fix
+		}
 		$pair->setEnabled($enabled);
 		$pair->setLocalName(trim($localName) !== '' ? trim($localName) : ('M365 ' . $pair->getRemoteName()));
 		if ($this->remote->isReadOnly($this->userId, $type, $remoteId)) {

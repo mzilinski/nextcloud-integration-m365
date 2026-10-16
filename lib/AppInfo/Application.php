@@ -9,11 +9,13 @@ namespace OCA\IntegrationM365\AppInfo;
 
 use OCA\IntegrationM365\Db\ItemMapper;
 use OCA\IntegrationM365\Db\ItemStoreInterface;
+use OCA\IntegrationM365\Listener\UserDeletedListener;
 use OCA\IntegrationM365\Notification\Notifier;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\User\Events\UserDeletedEvent;
 
 class Application extends App implements IBootstrap {
 	public const APP_ID = 'integration_m365';
@@ -31,6 +33,7 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerServiceAlias(ItemStoreInterface::class, ItemMapper::class);
 		$context->registerNotifierService(Notifier::class);
+		$context->registerEventListener(UserDeletedEvent::class, UserDeletedListener::class);
 	}
 
 	public function boot(IBootContext $context): void {

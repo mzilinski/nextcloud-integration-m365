@@ -9,6 +9,7 @@ namespace OCA\IntegrationM365\Service\Local;
 
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\IntegrationM365\Db\Collection;
+use OCA\IntegrationM365\Exception\LocalCollectionMissingException;
 
 /**
  * Wraps Nextcloud's internal CalDavBackend (there is no public write API for calendars).
@@ -29,14 +30,16 @@ class LocalCalendarService {
 	 *
 	 * @param string $components VEVENT or VTODO
 	 * @return array{0:int,1:string}
+	 * @throws LocalCollectionMissingException the calendar the pair was bound to is deleted or in the trash bin
 	 */
 	public function ensureCalendar(string $userId, Collection $pair, string $components): array {
 		$principal = self::principal($userId);
 		if ($pair->getLocalId() !== null) {
 			$existing = $this->backend->getCalendarById($pair->getLocalId());
-			if ($existing !== null) {
-				return [(int)$existing['id'], (string)$existing['uri']];
+			if ($existing === null || $existing['principaluri'] !== $principal || !empty($existing['{http://nextcloud.com/ns}deleted-at'])) {
+				throw new LocalCollectionMissingException("calendar {$pair->getLocalId()} of pair {$pair->getId()} is gone");
 			}
+			return [(int)$existing['id'], (string)$existing['uri']];
 		}
 		$uri = $pair->getLocalUri() !== '' ? $pair->getLocalUri() : self::slug($pair);
 		$existing = $this->backend->getCalendarByUri($principal, $uri);

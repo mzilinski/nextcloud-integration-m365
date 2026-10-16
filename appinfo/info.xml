@@ -30,7 +30,13 @@ An administrator registers one Azure application; each user connects their own M
     <commands>
         <command>OCA\IntegrationM365\Command\Sync</command>
         <command>OCA\IntegrationM365\Command\Pairs</command>
+        <command>OCA\IntegrationM365\Command\Reset</command>
     </commands>
+    <repair-steps>
+        <uninstall>
+            <step>OCA\IntegrationM365\Repair\Uninstall</step>
+        </uninstall>
+    </repair-steps>
     <settings>
         <admin>OCA\IntegrationM365\Settings\Admin</admin>
         <admin-section>OCA\IntegrationM365\Settings\AdminSection</admin-section>

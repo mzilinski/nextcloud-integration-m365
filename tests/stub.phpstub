@@ -243,7 +243,7 @@ namespace OCA\DAV\CalDAV {
         }
 
         /**
-         * @return array{id: int, uri: string, '{http://calendarserver.org/ns/}getctag': string, '{http://sabredav.org/ns}sync-token': int, '{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set': SupportedCalendarComponentSet, '{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp': ScheduleCalendarTransp, '{urn:ietf:params:xml:ns:caldav}calendar-timezone': ?string }|null
+         * @return array{id: int, uri: string, '{http://calendarserver.org/ns/}getctag': string, '{http://sabredav.org/ns}sync-token': int, '{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set': SupportedCalendarComponentSet, '{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp': ScheduleCalendarTransp, '{urn:ietf:params:xml:ns:caldav}calendar-timezone': ?string, principaluri: string, '{http://nextcloud.com/ns}deleted-at': ?int }|null
          */
         public function getCalendarById(int $calendarId): ?array
         {
