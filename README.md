@@ -4,9 +4,9 @@ Two-way synchronisation of **Microsoft 365 / Exchange Online** calendars, contac
 folders and **Microsoft To Do** lists with Nextcloud Calendar, Contacts and Tasks,
 through the Microsoft Graph API. No EWS, no DavMail.
 
-Status: **work in progress**. Done: app skeleton, Entra ID OAuth, settings UI, the
-Graph ↔ iCalendar/vCard mapping (25 conformance fixtures), the two-way sync engine
-with calendars, tasks and contacts. Open: live verification, packaging, app store.
+Status: **0.2.0**, in daily use against a real Microsoft 365 tenant. Calendars,
+contacts (including photos) and To Do lists sync in both directions; read-only
+collections (holidays, birthdays, subscribed calendars) can be imported.
 
 The mapping semantics are shared with the Python sibling
 [vdirsyncer-graph](https://github.com/mzilinski/vdirsyncer-graph) and pinned by the
@@ -17,6 +17,38 @@ same conformance fixtures.
 The app talks to `graph.microsoft.com` on behalf of each connected user, reading and
 writing only the collections that user enabled. Tokens are stored encrypted in the
 Nextcloud database. No data is sent anywhere else.
+
+## Setup
+
+The app works with any Microsoft 365 tenant and with personal Microsoft accounts. It
+is not tied to the author's tenant: every Nextcloud instance uses its own Entra ID app
+registration, which the Nextcloud admin creates once.
+
+1. Install and enable the app. Open *Administration settings → Microsoft 365
+   integration* and copy the **redirect URI** shown there (keep it exactly as shown,
+   including `/index.php/` if present).
+2. In the [Entra admin center](https://entra.microsoft.com) (or the Azure portal) go to
+   *App registrations → New registration*:
+   * Name: anything, e.g. `Nextcloud`.
+   * Supported account types: *Accounts in this organizational directory only* for a
+     single company tenant, or *any organizational directory and personal Microsoft
+     accounts* if users with other accounts should connect.
+   * Redirect URI: platform **Web**, paste the URI from step 1.
+3. *Certificates & secrets → New client secret*; note the secret **value** (not the ID).
+4. *API permissions → Add a permission → Microsoft Graph → Delegated*: `offline_access`,
+   `User.Read`, `Calendars.ReadWrite`, `Contacts.ReadWrite`, `Tasks.ReadWrite`. These
+   are the only scopes the app requests. In tenants where users may not consent
+   themselves, click *Grant admin consent*.
+5. Back in Nextcloud enter the **Application (client) ID**, the client secret and the
+   tenant: the *Directory (tenant) ID* for a single-tenant registration, otherwise
+   `common` (any Microsoft account), `organizations` or `consumers`. Save.
+6. Each user opens *Personal settings → Microsoft 365 integration*, clicks *Connect to Microsoft 365*,
+   signs in with their own account and ticks the calendars, contact folders and To Do
+   lists to sync. The matching Nextcloud collections (`M365 …`) are created on the first
+   run.
+
+The sync runs from Nextcloud's background job system, so `cron` (or `webcron`) must be
+configured; *Sync now* in the personal settings triggers a run immediately.
 
 ## How it works
 
