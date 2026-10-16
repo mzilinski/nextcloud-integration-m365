@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 – 2026-10-16
 - Fixed: the reconnect notification linked to a non-existent settings section (blank page); it now opens *Connected accounts*.
 
 ## 0.2.1 – 2026-10-16
