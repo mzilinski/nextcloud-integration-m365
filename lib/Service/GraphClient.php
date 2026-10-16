@@ -273,7 +273,7 @@ class GraphClient {
 	private function errorFromBody(string $bodyStr, int $status): GraphException {
 		$body = json_decode($bodyStr, true);
 		$err = is_array($body) ? ($body['error'] ?? []) : [];
-		$message = (string)($err['message'] ?? ('HTTP ' . $status));
+		$message = (string)($err['message'] ?? ('HTTP ' . (string)$status));
 		return new GraphException($message, $status, (string)($err['code'] ?? ''));
 	}
 

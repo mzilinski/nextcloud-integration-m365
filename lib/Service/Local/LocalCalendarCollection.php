@@ -22,7 +22,7 @@ class LocalCalendarCollection implements LocalCollectionInterface {
 		// A non-numeric token makes the backend list every object as "added".
 		$result = $this->backend->getChangesForCalendar((string)$this->calendarId, $syncToken === null ? '' : (string)$syncToken, 1);
 		if ($result === null) {
-			throw new \RuntimeException('calendar ' . $this->calendarId . ' no longer exists');
+			throw new \RuntimeException('calendar ' . (string)$this->calendarId . ' no longer exists');
 		}
 		return [
 			'token' => (int)$result['syncToken'],

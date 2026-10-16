@@ -10,29 +10,37 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			<a :href="docsUrl" target="_blank" rel="noopener noreferrer">{{ t('integration_m365', 'Step-by-step guide') }} ↗</a>
 		</p>
 		<div class="field">
-			<NcTextField :model-value="state.redirect_uri"
+			<NcTextField
+				:modelValue="state.redirect_uri"
 				:label="t('integration_m365', 'Redirect URI (copy into the Entra ID app registration)')"
 				readonly
-				show-trailing-button
-				:trailing-button-label="t('integration_m365', 'Copy redirect URI')"
-				@trailing-button-click="copyRedirect"
+				showTrailingButton
+				:trailingButtonLabel="t('integration_m365', 'Copy redirect URI')"
+				@trailingButtonClick="copyRedirect"
 				@focus="$event.target.select()">
 				<template #trailing-button-icon>
-					<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z" /></svg>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						aria-hidden="true"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z" /></svg>
 				</template>
 			</NcTextField>
 		</div>
 		<div class="field">
-			<NcTextField v-model="state.client_id"
+			<NcTextField
+				v-model="state.client_id"
 				:label="t('integration_m365', 'Application (client) ID')"
 				placeholder="00000000-0000-0000-0000-000000000000" />
 		</div>
 		<div class="field">
-			<NcPasswordField v-model="state.client_secret"
+			<NcPasswordField
+				v-model="state.client_secret"
 				:label="t('integration_m365', 'Client secret (value, not ID)')" />
 		</div>
 		<div class="field">
-			<NcDateTimePickerNative id="m365_secret_expires"
+			<NcDateTimePickerNative
+				id="m365_secret_expires"
 				v-model="secretExpires"
 				type="date"
 				:label="t('integration_m365', 'Client secret expires on (optional)')" />
@@ -44,9 +52,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			</p>
 		</div>
 		<div class="field">
-			<NcTextField v-model="state.tenant"
+			<NcTextField
+				v-model="state.tenant"
 				:label="t('integration_m365', 'Tenant')"
-				:helper-text="t('integration_m365', 'Directory (tenant) ID for a single-tenant registration, otherwise \'common\' (any Microsoft account), \'organizations\' or \'consumers\'')" />
+				:helperText="t('integration_m365', 'Directory (tenant) ID for a single-tenant registration, otherwise \'common\' (any Microsoft account), \'organizations\' or \'consumers\'')" />
 		</div>
 		<div class="actions">
 			<NcButton variant="primary" :disabled="saving || testing" @click="save">
@@ -67,11 +76,11 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
-import { showSuccess, showError } from '@nextcloud/dialogs'
 import { confirmPassword } from '@nextcloud/password-confirmation'
-import { NcButton, NcTextField, NcPasswordField, NcNoteCard, NcLoadingIcon, NcDateTimePickerNative } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcDateTimePickerNative, NcLoadingIcon, NcNoteCard, NcPasswordField, NcTextField } from '@nextcloud/vue'
 
 export default {
 	name: 'AdminSettings',
@@ -87,6 +96,7 @@ export default {
 			docsUrl: 'https://github.com/mzilinski/nextcloud-integration-m365/blob/main/docs/admin.md',
 		}
 	},
+
 	computed: {
 		secretDaysLeft() {
 			if (!this.secretExpires) {
@@ -94,6 +104,7 @@ export default {
 			}
 			return Math.floor((this.secretExpires.getTime() - Date.now()) / 86400000)
 		},
+
 		secretHint() {
 			const d = this.secretDaysLeft
 			if (d === null || d > 30) {
@@ -104,26 +115,30 @@ export default {
 			}
 			return this.n('integration_m365', 'The client secret expires in {count} day. Create a new one in Entra ID and save it here before that.', 'The client secret expires in {count} days. Create a new one in Entra ID and save it here before that.', d, { count: d })
 		},
+
 		secretHintType() {
 			return this.secretDaysLeft < 0 ? 'error' : 'warning'
 		},
 	},
+
 	methods: {
 		isoDate(date) {
 			if (!date) {
 				return ''
 			}
-			const pad = v => String(v).padStart(2, '0')
+			const pad = (v) => String(v).padStart(2, '0')
 			return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 		},
+
 		async copyRedirect() {
 			try {
 				await navigator.clipboard.writeText(this.state.redirect_uri)
 				showSuccess(this.t('integration_m365', 'Redirect URI copied'))
-			} catch (e) {
+			} catch {
 				showError(this.t('integration_m365', 'Could not copy, select the field and copy it manually'))
 			}
 		},
+
 		async save() {
 			this.saving = true
 			this.testResult = null
@@ -143,7 +158,6 @@ export default {
 					showSuccess(this.t('integration_m365', 'Microsoft 365 settings saved'))
 				}
 			} catch (e) {
-				console.error(e)
 				showError(e.response?.data?.error
 					? this.t('integration_m365', 'Failed to save settings: {error}', { error: e.response.data.error })
 					: this.t('integration_m365', 'Failed to save settings'))
@@ -151,13 +165,13 @@ export default {
 				this.saving = false
 			}
 		},
+
 		async test() {
 			this.testing = true
 			this.testResult = null
 			try {
 				this.testResult = (await axios.post(generateUrl('/apps/integration_m365/admin-config/test'))).data
-			} catch (e) {
-				console.error(e)
+			} catch {
 				this.testResult = { ok: false, message: this.t('integration_m365', 'The test request failed, see the Nextcloud log') }
 			} finally {
 				this.testing = false

@@ -7,7 +7,11 @@
   "scripts": {
     "build": "NODE_ENV=production vite --mode production build",
     "dev": "NODE_ENV=development vite --mode development build",
-    "watch": "NODE_ENV=development vite --mode development build --watch"
+    "watch": "NODE_ENV=development vite --mode development build --watch",
+    "lint": "eslint src",
+    "lint:fix": "eslint --fix src",
+    "stylelint": "stylelint \"src/**/*.{vue,css,scss}\"",
+    "stylelint:fix": "stylelint --fix \"src/**/*.{vue,css,scss}\""
   },
   "author": "Malte Zilinski",
   "license": "AGPL-3.0-or-later",
@@ -30,7 +34,11 @@
   },
   "devDependencies": {
     "@nextcloud/browserslist-config": "^3.0.1",
+    "@nextcloud/eslint-config": "^9.0.1",
+    "@nextcloud/stylelint-config": "^3.2.2",
     "@nextcloud/vite-config": "^2.3.5",
+    "eslint": "^10.12.0",
+    "stylelint": "^17.16.0",
     "typescript": "^5.9.0"
   },
   "overrides": {

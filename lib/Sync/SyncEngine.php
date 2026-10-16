@@ -216,7 +216,7 @@ class SyncEngine {
 			$uri = $base . '.' . $mapper->extension();
 			$n = 1;
 			while (isset($byLocal[$uri]) || $local->get($uri) !== null) {
-				$uri = $base . '-' . (++$n) . '.' . $mapper->extension();
+				$uri = $base . '-' . (string)(++$n) . '.' . $mapper->extension();
 			}
 			return $uri;
 		};

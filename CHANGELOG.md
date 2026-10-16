@@ -33,6 +33,14 @@
 - Unit tests for OAuthService (PKCE/state, refresh, invalid_grant → one notification, invalid_client → admin error, redirect, registration test), GraphClient (paging, host allow-list, delta expiry, throttling and back-off, retry rules per method, 401 refresh, error mapping, `$batch` sub-request retries), LifecycleService, UserDeletedListener, Notifier, EntraErrors, UserSyncService (locking, reauth skip, missing local collection, `--full`), background jobs and both controllers; SyncEngine now also covers both-deleted, delete-versus-change in both directions and policies, identical concurrent edits, the write cap, per-item failures, deferred photos and To Do lists. 133 tests.
 - `time()` and `sleep()` go through `ITimeFactory` / an overridable pause so that tests do not wait.
 
+### Compatibility and CI
+- Test matrix now covers what `info.xml` claims: PHP 8.1 with OCP stable32, 8.2 with stable33, 8.3 and 8.4 with stable35 (lint, psalm, PHPUnit on every entry).
+- New install job: the packaged app is installed into a real Nextcloud 32 (PHP 8.1) and 35 (PHP 8.4) server, enabled (migrations), its commands, settings pages, background job and uninstall step are exercised and the server log must stay clean.
+- Conformance fixtures are diffed against the vdirsyncer-graph repository on every run.
+- ESLint (`@nextcloud/eslint-config`) and stylelint (`@nextcloud/stylelint-config`) for the frontend; sources reformatted accordingly. `.nvmrc` pins Node 22.
+- Release workflow: runs the full test workflow first, checks tag, `info.xml`, `package.json` and CHANGELOG against each other, installs the signed build into a server and runs `integrity:check-app`, fails loudly when signing secrets are missing and warns when the App Store token is absent. Server checkout pinned to a tag.
+- Code made acceptable to the older psalm that resolves on PHP 8.1; `psr/http-message` declared as the dev dependency it is.
+
 ### Robustness
 - Fixed: a throttled or failed photo fetch inside a `$batch` was taken as "contact has no photo"; the content hash changed and the local contact was rewritten without its picture. Photos that could not be fetched now defer the contact to the next run; throttled sub-requests are retried with their `Retry-After`.
 - Graph client: retries 429/503/504 for every request and 500/502 plus network errors for idempotent ones, honours `Retry-After` in seconds and HTTP-date form, backs off exponentially with full jitter, and gives up immediately when Graph asks for more than 20 s (the next run tries again). Connect timeout of 10 s.

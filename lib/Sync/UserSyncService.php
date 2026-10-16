@@ -90,7 +90,7 @@ class UserSyncService {
 			try {
 				$result = $this->syncPair($userId, $pair, $dryRun, $out, $deadline);
 				$results[(int)$pair->getId()] = $result;
-				$pair->setLastError($result->errors > 0 ? SyncError::ITEMS_FAILED . $result->errors : null);
+				$pair->setLastError($result->errors > 0 ? SyncError::ITEMS_FAILED . (string)$result->errors : null);
 				$pair->setPendingItems($result->truncated ? $result->remaining : null);
 				if (!$dryRun) {
 					$pair->setLastSync($this->timeFactory->getTime());

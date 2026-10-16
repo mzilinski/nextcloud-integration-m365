@@ -22,6 +22,13 @@
                 <referencedClass name="Symfony\Component\Console\Output\OutputInterface"/>
             </errorLevel>
         </UndefinedClass>
+        <!-- ISchemaWrapper docblocks reference Doctrine, which the OCP package of older branches does not ship -->
+        <UndefinedDocblockClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Doctrine\DBAL\Schema\Table"/>
+                <referencedClass name="Doctrine\DBAL\Schema\Schema"/>
+            </errorLevel>
+        </UndefinedDocblockClass>
         <!-- psalm 6 style rules that Nextcloud app conventions do not follow -->
         <MissingOverrideAttribute errorLevel="suppress"/>
         <ClassMustBeFinal errorLevel="suppress"/>

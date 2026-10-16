@@ -108,7 +108,7 @@ final class RecurrenceMapper {
 			if ($k === 'UNTIL') {
 				$v = str_replace('-', '', (string)$v);
 			}
-			$parts[] = $k . '=' . (is_array($v) ? implode(',', $v) : (string)$v);
+			$parts[] = (string)$k . '=' . (is_array($v) ? implode(',', $v) : (string)$v);
 		}
 		return implode(';', $parts);
 	}

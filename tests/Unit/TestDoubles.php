@@ -80,6 +80,71 @@ class RecordingGraphClient extends GraphClient {
 	}
 }
 
+/** PSR-7 body with a fixed content (__toString cannot be mocked on every PHP/PSR version). */
+class FakeStream implements StreamInterface {
+	public function __construct(
+		private string $content,
+	) {
+	}
+
+	public function __toString(): string {
+		return $this->content;
+	}
+
+	public function close(): void {
+	}
+
+	public function detach() {
+		return null;
+	}
+
+	public function getSize(): ?int {
+		return strlen($this->content);
+	}
+
+	public function tell(): int {
+		return 0;
+	}
+
+	public function eof(): bool {
+		return true;
+	}
+
+	public function isSeekable(): bool {
+		return false;
+	}
+
+	public function seek(int $offset, int $whence = SEEK_SET): void {
+	}
+
+	public function rewind(): void {
+	}
+
+	public function isWritable(): bool {
+		return false;
+	}
+
+	public function write(string $string): int {
+		return 0;
+	}
+
+	public function isReadable(): bool {
+		return true;
+	}
+
+	public function read(int $length): string {
+		return '';
+	}
+
+	public function getContents(): string {
+		return $this->content;
+	}
+
+	public function getMetadata(?string $key = null) {
+		return null;
+	}
+}
+
 /** Builders for HTTP responses as the OCP client and PSR-7 deliver them. */
 final class Http {
 	/** @param array<string,string> $headers */
@@ -93,8 +158,7 @@ final class Http {
 
 	/** @param array<string,string> $headers */
 	public static function error(TestCase $tc, int $status, string $body, array $headers = []): HttpErrorException {
-		$stream = $tc->getMockBuilder(StreamInterface::class)->getMock();
-		$stream->method('__toString')->willReturn($body);
+		$stream = new FakeStream($body);
 		$r = $tc->getMockBuilder(ResponseInterface::class)->getMock();
 		$r->method('getStatusCode')->willReturn($status);
 		$r->method('getBody')->willReturn($stream);

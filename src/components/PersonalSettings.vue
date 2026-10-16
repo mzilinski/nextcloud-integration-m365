@@ -22,7 +22,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 			</p>
 			<NcNoteCard v-if="state.account.reauthRequired" type="error">
 				{{ t('integration_m365', 'Microsoft rejected the stored login (for example after a password change). Please connect again.') }}
-				<NcButton variant="primary" :disabled="busy" @click="connect">{{ t('integration_m365', 'Connect again') }}</NcButton>
+				<NcButton variant="primary" :disabled="busy" @click="connect">
+					{{ t('integration_m365', 'Connect again') }}
+				</NcButton>
 			</NcNoteCard>
 			<div class="actions">
 				<NcButton :disabled="busy || syncing" @click="syncNow">
@@ -31,14 +33,19 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					</template>
 					{{ syncing ? syncStatusText : t('integration_m365', 'Sync now') }}
 				</NcButton>
-				<NcButton variant="tertiary" :disabled="busy" @click="showDisconnect = true">{{ t('integration_m365', 'Disconnect') }}</NcButton>
+				<NcButton variant="tertiary" :disabled="busy" @click="showDisconnect = true">
+					{{ t('integration_m365', 'Disconnect') }}
+				</NcButton>
 			</div>
-			<NcDialog :open="showDisconnect"
+			<NcDialog
+				:open="showDisconnect"
 				:name="t('integration_m365', 'Disconnect Microsoft account')"
 				:message="t('integration_m365', 'Synchronisation stops. Calendars, contacts and tasks already in Nextcloud stay. Keep the collection settings to resume later, or forget them together with the synchronisation state.')"
 				:buttons="disconnectButtons"
 				@update:open="v => showDisconnect = v" />
-			<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
+			<NcNoteCard v-if="error" type="error">
+				{{ error }}
+			</NcNoteCard>
 			<NcNoteCard v-else-if="(pendingCount > 0 || remainingCount > 0) && !syncing" type="warning">
 				<span v-if="pendingCount > 0">
 					{{ n('integration_m365', '{count} collection is enabled but has not been synchronised yet.', '{count} collections are enabled but have not been synchronised yet.', pendingCount, { count: pendingCount }) }}
@@ -47,9 +54,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 					{{ n('integration_m365', 'Import in progress: {count} object still to be copied.', 'Import in progress: {count} objects still to be copied.', remainingCount, { count: remainingCount }) }}
 				</span>
 				{{ t('integration_m365', 'It continues automatically in the background, or start the next round right away:') }}
-				<NcButton variant="primary" :disabled="busy || syncing" @click="syncNow">{{ t('integration_m365', 'Sync now') }}</NcButton>
+				<NcButton variant="primary" :disabled="busy || syncing" @click="syncNow">
+					{{ t('integration_m365', 'Sync now') }}
+				</NcButton>
 			</NcNoteCard>
-			<CollectionTable v-for="type in state.types" :key="type"
+			<CollectionTable
+				v-for="type in state.types"
+				:key="type"
 				:type="type"
 				:rows="collections[type] || []"
 				:loading="loading"
@@ -60,10 +71,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
-import { showSuccess, showError } from '@nextcloud/dialogs'
-import { NcButton, NcNoteCard, NcLoadingIcon, NcDialog } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CollectionTable from './CollectionTable.vue'
 import { describeSyncError } from '../errors.js'
 
@@ -83,9 +94,7 @@ export default {
 			showDisconnect: false,
 		}
 	},
-	beforeUnmount() {
-		clearTimeout(this.pollTimer)
-	},
+
 	computed: {
 		disconnectButtons() {
 			return [
@@ -94,6 +103,7 @@ export default {
 				{ label: this.t('integration_m365', 'Disconnect and forget sync state'), variant: 'error', callback: () => this.disconnect(true) },
 			]
 		},
+
 		pendingCount() {
 			let n = 0
 			for (const type of Object.keys(this.collections)) {
@@ -105,6 +115,7 @@ export default {
 			}
 			return n
 		},
+
 		remainingCount() {
 			let n = 0
 			for (const type of Object.keys(this.collections)) {
@@ -115,6 +126,11 @@ export default {
 			return n
 		},
 	},
+
+	beforeUnmount() {
+		clearTimeout(this.pollTimer)
+	},
+
 	mounted() {
 		const params = new URLSearchParams(window.location.search)
 		if (params.get('m365') === 'connected') {
@@ -135,6 +151,7 @@ export default {
 			this.loadCollections()
 		}
 	},
+
 	methods: {
 		async connect() {
 			this.busy = true
@@ -146,6 +163,7 @@ export default {
 				this.busy = false
 			}
 		},
+
 		async disconnect(purge) {
 			this.showDisconnect = false
 			this.busy = true
@@ -158,12 +176,13 @@ export default {
 				showSuccess(purge
 					? this.t('integration_m365', 'Microsoft account disconnected, synchronisation state forgotten')
 					: this.t('integration_m365', 'Microsoft account disconnected'))
-			} catch (e) {
+			} catch {
 				showError(this.t('integration_m365', 'Disconnecting failed'))
 			} finally {
 				this.busy = false
 			}
 		},
+
 		async syncNow() {
 			this.syncing = true
 			this.syncStatusText = this.t('integration_m365', 'Synchronising…')
@@ -197,11 +216,12 @@ export default {
 			this.syncStatusText = this.t('integration_m365', 'Continuing in the background…')
 			this.pollStatus(before, Date.now())
 		},
+
 		async pollStatus(before, startedAt, once = false) {
 			let status
 			try {
 				status = (await axios.get(generateUrl('/apps/integration_m365/sync-status'))).data
-			} catch (e) {
+			} catch {
 				this.syncing = false
 				showError(this.t('integration_m365', 'Could not read the synchronisation status'))
 				return
@@ -210,7 +230,7 @@ export default {
 			let allDone = status.pairs.length > 0
 			const errors = []
 			for (const p of status.pairs) {
-				const row = (this.collections[p.type] || []).find(r => r.remoteId === p.remoteId)
+				const row = (this.collections[p.type] || []).find((r) => r.remoteId === p.remoteId)
 				if (row) {
 					row.lastSync = p.lastSync
 					row.lastError = p.lastError
@@ -250,6 +270,7 @@ export default {
 			}
 			this.pollTimer = setTimeout(() => this.pollStatus(before, startedAt), 3000)
 		},
+
 		async loadCollections() {
 			this.loading = true
 			this.error = ''
@@ -269,6 +290,7 @@ export default {
 				this.loading = false
 			}
 		},
+
 		async saveRow(row) {
 			try {
 				const { data } = await axios.put(generateUrl('/apps/integration_m365/collections/{type}', { type: row.type }), {

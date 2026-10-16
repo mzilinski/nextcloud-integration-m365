@@ -27,7 +27,7 @@ class LocalContactsCollection implements LocalCollectionInterface {
 		for ($i = 0; $i < 100; $i++) {
 			$result = $this->backend->getChangesForAddressBook((string)$this->addressBookId, $token, 1);
 			if ($result === null || $result === []) {
-				throw new \RuntimeException('address book ' . $this->addressBookId . ' no longer exists');
+				throw new \RuntimeException('address book ' . (string)$this->addressBookId . ' no longer exists');
 			}
 			$added = array_merge($added, array_map('strval', $result['added'] ?? []));
 			$modified = array_merge($modified, array_map('strval', $result['modified'] ?? []));

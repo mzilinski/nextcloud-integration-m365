@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Malte Zilinski <malte@zilinski.eu>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# On a GitHub release: build the frontend, sign the app with the app-store certificate
-# (secrets APP_PRIVATE_KEY / APP_CERTIFICATE, obtained via nextcloud/app-certificate-requests),
-# attach the tarball to the release and push it to apps.nextcloud.com (secret APPSTORE_TOKEN).
+# On a GitHub release (or manually for an existing tag): run the full test suite, build the
+# frontend, sign the app with the app-store certificate (secrets APP_PRIVATE_KEY /
+# APP_CERTIFICATE, obtained via nextcloud/app-certificate-requests), verify the signature
+# with a real server, attach the tarball to the release and push it to apps.nextcloud.com
+# (secret APPSTORE_TOKEN).
 name: Build and publish app release
 
 on:
@@ -12,31 +14,42 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to build (e.g. v0.2.0); the GitHub release must already exist
+        description: Release tag to build (e.g. v1.0.0); the GitHub release must already exist
         required: true
 
 permissions:
   contents: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   build_and_publish:
+    needs: test
     runs-on: ubuntu-latest
     env:
       APP_NAME: integration_m365
       TAG: ${{ inputs.tag || github.ref_name }}
       APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+      # the server is only used for occ integrity:sign-app / check-app; bump with new releases
+      SERVER_REF: v35.0.1
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref_name }}
           path: ${{ env.APP_NAME }}
-      - name: Validate app version against tag
+      - name: Tag, info.xml, package.json and CHANGELOG must agree
+        working-directory: ${{ env.APP_NAME }}
         run: |
-          v=$(grep -oE '<version>[^<]+' ${{ env.APP_NAME }}/appinfo/info.xml | cut -d'>' -f2)
-          [ "$TAG" = "v$v" ] || { echo "tag $TAG != v$v"; exit 1; }
+          v=$(grep -oE '<version>[^<]+' appinfo/info.xml | cut -d'>' -f2)
+          [ "$TAG" = "v$v" ] || { echo "tag $TAG != info.xml v$v"; exit 1; }
+          pv=$(node -p "require('./package.json').version")
+          [ "$pv" = "$v" ] || { echo "package.json $pv != $v"; exit 1; }
+          grep -qE "^## $v( |$)" CHANGELOG.md || { echo "CHANGELOG.md has no section for $v"; exit 1; }
+          grep -qi 'unreleased' CHANGELOG.md && { echo "CHANGELOG.md still says unreleased"; exit 1; } || true
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: ${{ env.APP_NAME }}/.nvmrc
       - name: Build frontend
         working-directory: ${{ env.APP_NAME }}
         run: npm ci && npm run build
@@ -48,12 +61,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nextcloud/server
-          ref: stable35
+          ref: ${{ env.SERVER_REF }}
           submodules: true
           path: server
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          extensions: gd, zip, intl, sqlite3, pdo_sqlite
       - name: Install server
         working-directory: server
         run: |
@@ -64,10 +78,18 @@ jobs:
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
           APP_CERTIFICATE: ${{ secrets.APP_CERTIFICATE }}
         run: |
+          [ -n "$APP_PRIVATE_KEY" ] && [ -n "$APP_CERTIFICATE" ] || { echo "signing secrets missing"; exit 1; }
           mkdir -p ~/.nextcloud/certificates
           echo "$APP_PRIVATE_KEY" > ~/.nextcloud/certificates/${{ env.APP_NAME }}.key
           echo "$APP_CERTIFICATE" > ~/.nextcloud/certificates/${{ env.APP_NAME }}.crt
           php server/occ integrity:sign-app --privateKey=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.key --certificate=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.crt --path=$PWD/build/${{ env.APP_NAME }}
+      - name: Verify the signed build installs and passes the integrity check
+        run: |
+          cp -r build/${{ env.APP_NAME }} server/apps/${{ env.APP_NAME }}
+          cd server
+          php occ app:enable ${{ env.APP_NAME }}
+          out=$(php occ integrity:check-app ${{ env.APP_NAME }}); echo "$out"; [ -z "$out" ] || { echo "integrity check reported differences"; exit 1; }
+          php occ integration_m365:pairs
       - name: Tarball
         run: tar -czf ${{ env.APP_NAME }}-${TAG}.tar.gz -C build ${{ env.APP_NAME }}
       - name: Attach to release
@@ -83,3 +105,6 @@ jobs:
           appstore_token: ${{ secrets.APPSTORE_TOKEN }}
           download_url: https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.TAG }}.tar.gz
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Warn when the store step was skipped
+        if: ${{ env.APPSTORE_TOKEN == '' }}
+        run: echo "::warning::APPSTORE_TOKEN is not set, the release was NOT pushed to apps.nextcloud.com"

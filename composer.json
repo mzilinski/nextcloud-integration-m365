@@ -11,6 +11,7 @@
         "nextcloud/ocp": "dev-stable35",
         "phpunit/phpunit": "^10.5",
         "psalm/phar": "^6.8",
+        "psr/http-message": "^1.1 || ^2.0",
         "sabre/dav": "^4.7",
         "sabre/vobject": "^4.5"
     },

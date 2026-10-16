@@ -42,8 +42,10 @@ final class ContactMapper {
 		if (!empty($json['nickName'])) {
 			$card->add('NICKNAME', (string)$json['nickName']);
 		}
-		foreach (array_values($json['emailAddresses'] ?? []) as $i => $e) {
-			$addr = (string)(($e ?? [])['address'] ?? '');
+		/** @var list<mixed> $emails */
+		$emails = is_array($json['emailAddresses'] ?? null) ? array_values($json['emailAddresses']) : [];
+		foreach ($emails as $i => $e) {
+			$addr = is_array($e) ? (string)($e['address'] ?? '') : '';
 			if ($addr !== '') {
 				$card->add('EMAIL', $addr, ['TYPE' => $i === 0 ? ['INTERNET', 'PREF'] : ['INTERNET']]);
 			}

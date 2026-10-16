@@ -4,25 +4,44 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
+  workflow_call:
 
 jobs:
   php:
+    name: PHP ${{ matrix.php-version }} / OCP ${{ matrix.ocp }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php-version: ['8.3', '8.4']
+        # info.xml: PHP >= 8.1, Nextcloud 32-35. Nextcloud 32 is the last one to run on
+        # PHP 8.1/8.2, Nextcloud 35 needs 8.3+; the OCP stubs follow the server branch.
+        include:
+          - { php-version: '8.1', ocp: stable32 }
+          - { php-version: '8.2', ocp: stable33 }
+          - { php-version: '8.3', ocp: stable35 }
+          - { php-version: '8.4', ocp: stable35 }
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
-      - run: composer install --no-interaction --prefer-dist
+      - name: Install dependencies
+        run: |
+          # composer.lock is resolved for the newest supported stack; older entries re-resolve
+          if [ "${{ matrix.ocp }}" != "stable35" ]; then
+            composer config platform.php ${{ matrix.php-version }}.0
+            composer require --dev --no-update nextcloud/ocp:dev-${{ matrix.ocp }}
+            composer update --no-interaction --prefer-dist --no-progress
+          else
+            composer install --no-interaction --prefer-dist --no-progress
+          fi
       - name: Lint
         run: composer run lint
       - name: Coding standard
+        if: matrix.ocp == 'stable35'
         run: composer run cs:check
       - name: Psalm
         run: composer run psalm
@@ -35,6 +54,96 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
+          cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: ESLint
+        run: npm run lint
+      - name: Stylelint
+        run: npm run stylelint
+      - name: Build
+        run: npm run build
+      - name: Keep the build for the install job
+        uses: actions/upload-artifact@v4
+        with:
+          name: js
+          path: js/
+          retention-days: 1
+
+  fixtures:
+    name: Conformance fixtures match vdirsyncer-graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: mzilinski/vdirsyncer-graph
+          path: vdirsyncer-graph
+      - name: Diff fixtures
+        run: diff -r --exclude=README.md tests/fixtures vdirsyncer-graph/fixtures
+
+  install:
+    name: Install into Nextcloud ${{ matrix.server }} (PHP ${{ matrix.php-version }})
+    needs: frontend
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { server: stable32, php-version: '8.1' }
+          - { server: stable35, php-version: '8.4' }
+    env:
+      APP_NAME: integration_m365
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.APP_NAME }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: js
+          path: ${{ env.APP_NAME }}/js
+      - name: Checkout Nextcloud server
+        uses: actions/checkout@v4
+        with:
+          repository: nextcloud/server
+          ref: ${{ matrix.server }}
+          submodules: true
+          path: server
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: gd, zip, intl, sqlite3, pdo_sqlite
+          coverage: none
+      - name: Package the app as the release would
+        run: |
+          mkdir -p server/apps/${{ env.APP_NAME }}
+          rsync -a --exclude-from=${{ env.APP_NAME }}/.nextcloudignore ${{ env.APP_NAME }}/ server/apps/${{ env.APP_NAME }}/
+      - name: Install server and enable the app (runs the migrations)
+        working-directory: server
+        run: |
+          mkdir -p data
+          php occ maintenance:install --admin-pass=admin --database=sqlite -n
+          php occ app:enable ${{ env.APP_NAME }}
+          php occ app:list | grep -A1 'Enabled' | grep -q ${{ env.APP_NAME }}
+      - name: Smoke-test commands, settings, jobs and uninstall step
+        working-directory: server
+        run: |
+          php occ integration_m365:pairs
+          php occ integration_m365:sync
+          php occ integration_m365:reset --all
+          php occ background-job:list | grep -q 'IntegrationM365\\BackgroundJob\\SyncJob'
+          php occ app:disable ${{ env.APP_NAME }}
+          ! php occ background-job:list | grep -q 'IntegrationM365'
+          php occ app:enable ${{ env.APP_NAME }}
+          php occ background-job:list | grep -q 'IntegrationM365\\BackgroundJob\\SyncJob'
+          # the settings pages must render (initial state + templates) without a fatal error
+          php -r 'require "lib/base.php"; \OC_App::loadApps(); \OC_User::setUserId("admin"); foreach ([\OCA\IntegrationM365\Settings\Admin::class, \OCA\IntegrationM365\Settings\Personal::class] as $c) { \OC::$server->get($c)->getForm(); echo "$c ok\n"; }'
+      - name: App metadata is valid
+        working-directory: server
+        run: |
+          php occ app:getpath ${{ env.APP_NAME }}
+          php -r '$x = simplexml_load_file("apps/${{ env.APP_NAME }}/appinfo/info.xml"); foreach (["id","name","summary","description","version","licence","author","namespace","category","bugs","website","dependencies","settings","repair-steps"] as $k) { if (!isset($x->$k)) { fwrite(STDERR, "info.xml: missing $k\n"); exit(1); } } echo "info.xml ok\n";'
+      - name: Log must stay clean
+        working-directory: server
+        run: |
+          if grep -E '"level":[34]' data/nextcloud.log | grep -v 'maintenance:install'; then echo "errors in nextcloud.log"; exit 1; fi; true
