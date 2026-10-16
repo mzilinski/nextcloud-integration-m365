@@ -124,7 +124,7 @@ jobs:
           mkdir -p data
           php occ maintenance:install --admin-pass=admin --database=sqlite -n
           php occ app:enable ${{ env.APP_NAME }}
-          php occ app:list | grep -A1 'Enabled' | grep -q ${{ env.APP_NAME }}
+          php occ app:list --output=json | php -r 'exit(isset(json_decode(stream_get_contents(STDIN), true)["enabled"]["${{ env.APP_NAME }}"]) ? 0 : 1);'
       - name: Smoke-test commands, settings, jobs and uninstall step
         working-directory: server
         run: |
