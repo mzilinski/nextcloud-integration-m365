@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\IntegrationM365\Controller;
 
 use OCA\IntegrationM365\AppInfo\Application;
+use OCA\IntegrationM365\BackgroundJob\SyncJob;
 use OCA\IntegrationM365\BackgroundJob\UserSyncJob;
 use OCA\IntegrationM365\Db\CollectionMapper;
 use OCA\IntegrationM365\Exception\ConfigurationException;
@@ -65,7 +66,7 @@ class ConfigController extends Controller {
 	public function setAdminConfig(array $values): DataResponse {
 		$before = [$this->oauth->getClientId(), $this->oauth->getTenant()];
 		foreach ($values as $key => $value) {
-			if (!in_array($key, ['client_id', 'client_secret', 'tenant', 'secret_expires'], true)) {
+			if (!in_array($key, ['client_id', 'client_secret', 'tenant', 'secret_expires', 'sync_interval'], true)) {
 				continue;
 			}
 			if ($key === 'client_secret' && $value === 'dummySecret') {
@@ -74,6 +75,13 @@ class ConfigController extends Controller {
 			$value = trim((string)$value);
 			if ($key === 'secret_expires' && $value !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
 				return new DataResponse(['error' => 'invalid date'], Http::STATUS_BAD_REQUEST);
+			}
+			if ($key === 'sync_interval') {
+				if (!ctype_digit($value) || (int)$value < SyncJob::MIN_INTERVAL || (int)$value > SyncJob::MAX_INTERVAL) {
+					return new DataResponse(['error' => 'invalid interval'], Http::STATUS_BAD_REQUEST);
+				}
+				$this->appConfig->setAppValueInt($key, (int)$value, lazy: true);
+				continue;
 			}
 			if (($key === 'client_id' && strlen($value) > 64) || ($key === 'tenant' && strlen($value) > 255) || ($key === 'client_secret' && strlen($value) > 512)) {
 				return new DataResponse(['error' => 'invalid parameters'], Http::STATUS_BAD_REQUEST);

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+### Added
+- Admin setting **Sync interval** (60–3600 s, default 300) for the background job; Nextcloud's cron must run at least that often (documented in the admin guide).
+
 ## [1.0.0] – 2026-10-16
 
 ### Documentation

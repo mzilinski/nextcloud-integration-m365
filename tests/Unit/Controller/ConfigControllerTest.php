@@ -34,7 +34,7 @@ class ConfigControllerTest extends TestCase {
 	private UserSyncService&MockObject $userSync;
 	private LifecycleService&MockObject $lifecycle;
 	private IJobList&MockObject $jobs;
-	/** @var array<string,string> */
+	/** @var array<string,string|int> */
 	private array $config = ['client_id' => 'old-id', 'client_secret' => 'sec', 'tenant' => 'old-tenant'];
 	private bool $reauth = false;
 	private string $principal = 'ann@example.com';
@@ -55,6 +55,10 @@ class ConfigControllerTest extends TestCase {
 	private function controller(?string $userId = 'u'): ConfigController {
 		$appConfig = $this->createMock(IAppConfig::class);
 		$appConfig->method('setAppValueString')->willReturnCallback(function (string $k, string $v) {
+			$this->config[$k] = $v;
+			return true;
+		});
+		$appConfig->method('setAppValueInt')->willReturnCallback(function (string $k, int $v) {
 			$this->config[$k] = $v;
 			return true;
 		});
@@ -87,6 +91,10 @@ class ConfigControllerTest extends TestCase {
 	public function testAdminConfigValidation(): void {
 		self::assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->setAdminConfig(['secret_expires' => 'tomorrow'])->getStatus());
 		self::assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->setAdminConfig(['client_id' => str_repeat('x', 65)])->getStatus());
+		self::assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->setAdminConfig(['sync_interval' => '30'])->getStatus());
+		self::assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->setAdminConfig(['sync_interval' => 'fast'])->getStatus());
+		self::assertSame(Http::STATUS_OK, $this->controller()->setAdminConfig(['sync_interval' => '60'])->getStatus());
+		self::assertSame(60, $this->config['sync_interval']);
 		self::assertSame(Http::STATUS_OK, $this->controller()->setAdminConfig(['secret_expires' => '2027-01-31'])->getStatus());
 		self::assertSame('2027-01-31', $this->config['secret_expires']);
 	}

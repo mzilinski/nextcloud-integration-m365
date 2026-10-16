@@ -76,6 +76,8 @@
     "Client secret expires on (optional)": "Clientgeheimnis läuft ab am (optional)",
     "Entra ID client secrets expire after 24 months at most. Note the date here to get a reminder before every user loses the connection.": "Entra-ID-Clientgeheimnisse laufen nach spätestens 24 Monaten ab. Tragen Sie das Datum hier ein, um rechtzeitig erinnert zu werden, bevor alle Benutzer die Verbindung verlieren.",
     "Tenant": "Mandant",
+    "Sync interval (seconds)": "Abgleichintervall (Sekunden)",
+    "How often the background job looks for changes: {min} to {max} seconds, default 300. Nextcloud's cron must run at least that often. Every run costs one Microsoft Graph request per enabled collection and user.": "Wie oft der Hintergrundjob nach Änderungen sucht: {min} bis {max} Sekunden, Standard 300. Der Nextcloud-Cron muss mindestens so oft laufen. Jeder Lauf kostet eine Microsoft-Graph-Anfrage pro aktivierter Sammlung und Benutzer.",
     "Directory (tenant) ID for a single-tenant registration, otherwise 'common' (any Microsoft account), 'organizations' or 'consumers'": "Verzeichnis-ID (Mandanten-ID) bei einer Einzelmandanten-Registrierung, sonst 'common' (beliebiges Microsoft-Konto), 'organizations' oder 'consumers'",
     "Saving…": "Speichere …",
     "Save": "Speichern",

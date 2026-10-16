@@ -135,9 +135,14 @@ Microsoft response.
 
 ## Scaling notes
 
-* The background job spends at most 240 s per run and visits users least recently synced
-  first; large instances simply take a few runs to get round once. Each collection writes
-  at most 500 objects per run.
+* The background job runs every **sync interval** (admin setting, 60–3600 s, default
+  300). Nextcloud's cron has to run at least that often: the stock `cron.php` schedule and
+  the official Docker image's `cron.sh` fire every 5 minutes, so a shorter interval needs a
+  `* * * * *` crontab entry. Every run costs one Graph delta request per enabled collection
+  and user, so on big instances keep the default.
+* One run spends at most 240 s and visits users least recently synced first; large
+  instances simply take a few runs to get round once. Each collection writes at most 500
+  objects per run.
 * Graph throttling (429/503) is retried with the `Retry-After` Microsoft sends; longer
   waits are left to the next run.
 * Per user and run there is one Graph delta request per collection plus one request per
@@ -153,7 +158,7 @@ and address books belong to the users and are not deleted; users can remove them
 Calendar and Contacts apps.
 
 Tables: `oc_m365_collections`, `oc_m365_items`. App config keys: `client_id`,
-`client_secret` (sensitive), `tenant`, `secret_expires`. User config keys (all under the
+`client_secret` (sensitive), `tenant`, `secret_expires`, `sync_interval`. User config keys (all under the
 app id, tokens encrypted with the instance secret): `access_token`, `refresh_token`,
 `token_expires_at`, `user_name`, `user_principal`, `reauth_required`, and during a login
 `oauth_state`, `oauth_verifier`.

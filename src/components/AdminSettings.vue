@@ -57,6 +57,15 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				:label="t('integration_m365', 'Tenant')"
 				:helperText="t('integration_m365', 'Directory (tenant) ID for a single-tenant registration, otherwise \'common\' (any Microsoft account), \'organizations\' or \'consumers\'')" />
 		</div>
+		<div class="field">
+			<NcTextField
+				v-model="state.sync_interval"
+				type="number"
+				:min="state.sync_interval_min"
+				:max="state.sync_interval_max"
+				:label="t('integration_m365', 'Sync interval (seconds)')"
+				:helperText="t('integration_m365', 'How often the background job looks for changes: {min} to {max} seconds, default 300. Nextcloud\'s cron must run at least that often. Every run costs one Microsoft Graph request per enabled collection and user.', { min: state.sync_interval_min, max: state.sync_interval_max })" />
+		</div>
 		<div class="actions">
 			<NcButton variant="primary" :disabled="saving || testing" @click="save">
 				{{ saving ? t('integration_m365', 'Saving…') : t('integration_m365', 'Save') }}
@@ -150,6 +159,7 @@ export default {
 						client_secret: this.state.client_secret,
 						tenant: this.state.tenant,
 						secret_expires: this.isoDate(this.secretExpires),
+						sync_interval: String(this.state.sync_interval),
 					},
 				})
 				if (data.invalidatedUsers > 0) {

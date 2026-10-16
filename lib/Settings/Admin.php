@@ -8,14 +8,17 @@ declare(strict_types=1);
 namespace OCA\IntegrationM365\Settings;
 
 use OCA\IntegrationM365\AppInfo\Application;
+use OCA\IntegrationM365\BackgroundJob\SyncJob;
 use OCA\IntegrationM365\Service\OAuthService;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\Settings\ISettings;
 
 class Admin implements ISettings {
 	public function __construct(
 		private OAuthService $oauth,
+		private IAppConfig $appConfig,
 		private IInitialState $initialState,
 	) {
 	}
@@ -27,6 +30,9 @@ class Admin implements ISettings {
 			'tenant' => $this->oauth->getTenant(),
 			'redirect_uri' => $this->oauth->getRedirectUri(),
 			'secret_expires' => $this->oauth->getSecretExpires(),
+			'sync_interval' => SyncJob::interval($this->appConfig),
+			'sync_interval_min' => SyncJob::MIN_INTERVAL,
+			'sync_interval_max' => SyncJob::MAX_INTERVAL,
 			'scopes' => OAuthService::SCOPES,
 		]);
 		return new TemplateResponse(Application::APP_ID, 'adminSettings');

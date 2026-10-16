@@ -12,6 +12,7 @@ use OCA\IntegrationM365\BackgroundJob\UserSyncJob;
 use OCA\IntegrationM365\Db\CollectionMapper;
 use OCA\IntegrationM365\Sync\SyncResult;
 use OCA\IntegrationM365\Sync\UserSyncService;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\IJobList;
@@ -46,6 +47,14 @@ class JobsTest extends TestCase {
 		$this->runJob($job, ['user_id' => 'u']); // done
 	}
 
+	public function testSyncIntervalIsClampedToTheAllowedRange(): void {
+		foreach ([0 => 60, 59 => 60, 60 => 60, 120 => 120, 300 => 300, 99999 => 3600] as $configured => $expected) {
+			$config = $this->createMock(IAppConfig::class);
+			$config->method('getAppValueInt')->willReturn($configured);
+			self::assertSame($expected, SyncJob::interval($config), "configured $configured");
+		}
+	}
+
 	public function testUserSyncJobIgnoresMissingArgument(): void {
 		$sync = $this->createMock(UserSyncService::class);
 		$sync->expects(self::never())->method('syncUser');
@@ -64,7 +73,9 @@ class JobsTest extends TestCase {
 			}
 			return [];
 		});
-		$job = new SyncJob($this->createMock(ITimeFactory::class), $collections, $sync, new NullLogger());
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getAppValueInt')->willReturn(300);
+		$job = new SyncJob($this->createMock(ITimeFactory::class), $config, $collections, $sync, new NullLogger());
 		self::assertSame(IJob::TIME_SENSITIVE, $job->isTimeSensitive() ? IJob::TIME_SENSITIVE : IJob::TIME_INSENSITIVE);
 		self::assertSame(300, $job->getInterval());
 		$this->runJob($job, null);
