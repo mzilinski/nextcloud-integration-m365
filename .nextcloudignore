@@ -20,3 +20,8 @@ vite.config.js
 *.map
 screenshots
 tools
+.l10nignore
+.nvmrc
+.tx
+eslint.config.js
+stylelint.config.js
