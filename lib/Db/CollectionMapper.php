@@ -78,11 +78,36 @@ class CollectionMapper extends QBMapper {
 		return $users;
 	}
 
-	/** @return string[] user ids that have at least one enabled pair */
+	/**
+	 * Take the pair's lock if nobody holds it: one conditional UPDATE, so cron and
+	 * "Sync now" cannot both pass a read-then-write check.
+	 */
+	public function tryLock(int $id, int $now, int $until): bool {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('locked_until', $qb->createNamedParameter($until, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->isNull('locked_until'),
+				$qb->expr()->lt('locked_until', $qb->createNamedParameter($now, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)),
+			));
+		return $qb->executeStatement() === 1;
+	}
+
+	/**
+	 * @return string[] user ids that have at least one enabled pair, least recently synced
+	 *                  first so that a run cut short by its time budget does not starve the
+	 *                  same users every time
+	 */
 	public function findUsersWithEnabledPairs(): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->selectDistinct('user_id')->from($this->getTableName())
-			->where($qb->expr()->eq('enabled', $qb->createNamedParameter(true, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_BOOL)));
+		$qb->select('user_id')
+			->selectAlias($qb->createFunction('COALESCE(MIN(' . $qb->getColumnName('last_sync') . '), 0)'), 'oldest')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('enabled', $qb->createNamedParameter(true, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_BOOL)))
+			->groupBy('user_id')
+			->orderBy('oldest', 'ASC')
+			->addOrderBy('user_id', 'ASC');
 		$result = $qb->executeQuery();
 		$users = [];
 		while (($row = $result->fetch()) !== false) {

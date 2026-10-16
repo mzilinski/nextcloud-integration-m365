@@ -9,6 +9,7 @@ namespace OCA\IntegrationM365\Tests\Unit\Sync;
 
 use OCA\IntegrationM365\Db\Collection;
 use OCA\IntegrationM365\Service\Mapping\CalendarItemMapper;
+use OCA\IntegrationM365\Service\Mapping\ContactItemMapper;
 use OCA\IntegrationM365\Service\Mapping\VObjectUid;
 use OCA\IntegrationM365\Sync\SyncEngine;
 use OCA\IntegrationM365\Sync\SyncResult;
@@ -227,6 +228,32 @@ class SyncEngineTest extends TestCase {
 		self::assertCount(1, $this->remote->objects);
 		self::assertCount(1, $this->local->objects);
 		self::assertNull($this->pair->getDeltaLink());
+	}
+
+	public function testUnavailablePhotoDefersTheContactAndKeepsCursors(): void {
+		$engine = new SyncEngine($this->items, new NullLogger());
+		$mapper = new ContactItemMapper();
+		$id = $this->remote->seed(['displayName' => 'Ann', 'givenName' => 'Ann', 'surname' => 'A']);
+		$this->remote->photos[$id] = ['PHOTOBYTES', 'image/jpeg'];
+		$this->remote->seed(['displayName' => 'Bob', 'givenName' => 'Bob', 'surname' => 'B']);
+
+		// throttled photo fetch: Ann waits, Bob is written, cursors stay
+		$this->remote->photoUnavailable[$id] = true;
+		$r = $engine->sync($this->pair, $this->local, $this->remote, $mapper);
+		self::assertTrue($r->truncated);
+		self::assertSame(1, $r->localCreated);
+		self::assertSame(1, $r->remaining);
+		self::assertNull($this->pair->getDeltaLink());
+		self::assertStringContainsString('deferred', implode("\n", $r->log));
+		self::assertStringNotContainsString('Ann', implode('', array_column($this->local->objects, 'data')));
+
+		// next run: photo available, Ann arrives with her picture, Bob is an absorbed echo
+		$r2 = $engine->sync($this->pair, $this->local, $this->remote, $mapper);
+		self::assertFalse($r2->truncated);
+		self::assertSame(1, $r2->localCreated);
+		self::assertNotNull($this->pair->getDeltaLink());
+		$ann = array_values(array_filter($this->local->objects, static fn ($o) => str_contains($o['data'], 'Ann')))[0]['data'];
+		self::assertStringContainsString(base64_encode('PHOTOBYTES'), $ann);
 	}
 
 	public function testSeriesInstancesAreSkipped(): void {

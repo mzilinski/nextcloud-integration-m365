@@ -13,6 +13,20 @@
 - New `occ integration_m365:reset --pair ID | --user UID | --all`: forget cursors and correlations of one pair (next run re-pairs by UID), purge one user, or wipe everything before `app:remove`. Local calendars and address books are never touched.
 - `last_error` now holds machine-readable codes (`reauth_required`, `config_error`, `local_missing`, `items_failed:N`) so the UI can translate them.
 
+### Robustness
+- Fixed: a throttled or failed photo fetch inside a `$batch` was taken as "contact has no photo"; the content hash changed and the local contact was rewritten without its picture. Photos that could not be fetched now defer the contact to the next run; throttled sub-requests are retried with their `Retry-After`.
+- Graph client: retries 429/503/504 for every request and 500/502 plus network errors for idempotent ones, honours `Retry-After` in seconds and HTTP-date form, backs off exponentially with full jitter, and gives up immediately when Graph asks for more than 20 s (the next run tries again). Connect timeout of 10 s.
+- The pair lock is taken with one conditional `UPDATE`: cron and "Sync now" can no longer both pass a read-then-write check. `--full` resets the cursors under the lock.
+- Background job is now time sensitive (instances with a maintenance window only synced during that window), spends at most 240 s per run and visits users least recently synced first, so nobody starves when a run is cut short. One failing user no longer aborts the others.
+- A pair skipped because another run holds its lock no longer makes the "Sync now" job re-queue itself every tick.
+- Deferred (documented limitation): a run cut short by the write cap re-lists the whole remote collection next time; initial imports of very large collections therefore cost more Graph pages than strictly necessary.
+
+### Security
+- `nextLink`/`deltaLink` (stored and replayed) and every other absolute URL are only followed on `https://graph.microsoft.com`; anything else is refused before a bearer token is attached.
+- Authorization code, token responses, token request parameters and raw upload bodies carry `#[\SensitiveParameter]` so they never appear in logged stack traces.
+- Collection updates validate the lengths of remote id and names (HTTP 400 instead of a database error) and report Graph/token failures of the read-only probe as 502/400 instead of 500.
+- Calendars and address books are only used when they belong to the user's principal and are not in the trash bin.
+
 ## 0.2.2 – 2026-10-16
 - Fixed: the reconnect notification linked to a non-existent settings section (blank page); it now opens *Connected accounts*.
 

@@ -99,7 +99,7 @@ class OAuthService {
 	 *
 	 * @throws TokenException|GraphException
 	 */
-	public function handleRedirect(string $userId, string $code, string $state): array {
+	public function handleRedirect(string $userId, #[\SensitiveParameter] string $code, string $state): array {
 		$expected = $this->secrets->getPlain($userId, 'oauth_state');
 		$verifier = $this->secrets->getEncrypted($userId, 'oauth_verifier');
 		$this->secrets->delete($userId, 'oauth_state');
@@ -230,7 +230,7 @@ class OAuthService {
 		$this->notifications->markProcessed($notification);
 	}
 
-	private function storeToken(string $userId, array $token): void {
+	private function storeToken(string $userId, #[\SensitiveParameter] array $token): void {
 		$this->secrets->setEncrypted($userId, 'access_token', (string)$token['access_token']);
 		if (!empty($token['refresh_token'])) {
 			$this->secrets->setEncrypted($userId, 'refresh_token', (string)$token['refresh_token']);
@@ -239,7 +239,7 @@ class OAuthService {
 	}
 
 	/** @throws GraphException */
-	private function tokenRequest(array $params): array {
+	private function tokenRequest(#[\SensitiveParameter] array $params): array {
 		$client = $this->clientService->newClient();
 		try {
 			$response = $client->post($this->authority() . '/token', [

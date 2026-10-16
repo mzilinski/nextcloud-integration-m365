@@ -178,13 +178,19 @@ class FakeRemote implements RemoteCollectionInterface {
 		return (string)($json['changeKey'] ?? '');
 	}
 
+	/** @var array<string,true> ids whose photo the next extrasFor() reports as unavailable */
+	public array $photoUnavailable = [];
+
 	public function extrasFor(array $ids): array {
 		$out = [];
 		foreach ($ids as $id) {
-			if (isset($this->photos[$id])) {
+			if (isset($this->photoUnavailable[$id])) {
+				$out[$id] = ['unavailable' => true];
+			} elseif (isset($this->photos[$id])) {
 				$out[$id] = ['photo' => $this->photos[$id]];
 			}
 		}
+		$this->photoUnavailable = [];
 		return $out;
 	}
 

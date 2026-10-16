@@ -11,6 +11,11 @@ use OCA\IntegrationM365\Exception\GraphException;
 
 /** Contacts need their photo fetched/pushed separately from the JSON. */
 class GraphContactsCollection extends GraphRemoteCollection {
+	/**
+	 * Photos of the changed contacts. A photo that could not be fetched (throttled batch,
+	 * server error) is reported as `unavailable` rather than as "no photo": otherwise the
+	 * content hash would change and the local contact be rewritten without its picture.
+	 */
 	public function extrasFor(array $ids): array {
 		// ids arrive as a list (interface contract)
 		if ($ids === []) {
@@ -20,24 +25,33 @@ class GraphContactsCollection extends GraphRemoteCollection {
 		foreach ($ids as $i => $id) {
 			$requests[] = ['id' => (string)$i, 'method' => 'GET', 'url' => '/me/contacts/' . rawurlencode($id) . '/photo/$value'];
 		}
+		$out = [];
 		try {
 			$responses = $this->graph->batch($this->userId, $requests);
 		} catch (GraphException) {
-			return []; // photos are decoration: deliver the contacts without them
+			foreach ($ids as $id) {
+				$out[$id] = ['unavailable' => true];
+			}
+			return $out;
 		}
-		$out = [];
-		foreach ($responses as $resp) {
-			$i = (int)($resp['id'] ?? -1);
-			if ($i < 0 || !isset($ids[$i]) || (int)($resp['status'] ?? 0) !== 200 || empty($resp['body'])) {
-				continue; // 404 = no photo
+		foreach ($ids as $i => $id) {
+			$resp = $responses[(string)$i] ?? null;
+			$status = $resp === null ? 0 : (int)($resp['status'] ?? 0);
+			if ($status === 404) {
+				continue; // no photo
+			}
+			if ($status !== 200 || empty($resp['body'])) {
+				$out[$id] = ['unavailable' => true];
+				continue;
 			}
 			// /$value inside a batch comes back as a base64 string body.
 			$bytes = base64_decode((string)$resp['body'], true);
 			if ($bytes === false || $bytes === '') {
+				$out[$id] = ['unavailable' => true];
 				continue;
 			}
 			$mime = (string)(($resp['headers'] ?? [])['Content-Type'] ?? 'image/jpeg');
-			$out[$ids[$i]] = ['photo' => [$bytes, $mime]];
+			$out[$id] = ['photo' => [$bytes, $mime]];
 		}
 		return $out;
 	}

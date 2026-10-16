@@ -29,8 +29,9 @@ class UserSyncJob extends QueuedJob {
 		}
 		$results = $this->userSync->syncUser($userId);
 		foreach ($results as $result) {
-			if ($result->truncated) {
+			if ($result->truncated && !$result->locked) {
 				// budget hit: queue the next round right away instead of waiting for the 5-minute job
+				// (a pair locked by another run is that run's business, re-queueing would spin)
 				$this->jobList->add(self::class, ['user_id' => $userId]);
 				return;
 			}

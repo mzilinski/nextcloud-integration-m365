@@ -49,9 +49,10 @@ class UserSyncService {
 
 	/**
 	 * @param callable(string):void|null $out verbose output (occ -v)
+	 * @param bool $full forget sync token and delta link first (re-lists everything, keeps correlations)
 	 * @return array<int, SyncResult> keyed by pair id
 	 */
-	public function syncUser(string $userId, bool $dryRun = false, ?callable $out = null, ?int $onlyPair = null, ?float $deadline = null): array {
+	public function syncUser(string $userId, bool $dryRun = false, ?callable $out = null, ?int $onlyPair = null, ?float $deadline = null, bool $full = false): array {
 		$results = [];
 		$pairs = $this->collections->findEnabledByUser($userId);
 		if ($pairs !== [] && $this->oauth->getAccountInfo($userId)['reauthRequired']) {
@@ -71,14 +72,18 @@ class UserSyncService {
 				$results[(int)$pair->getId()] = $this->truncatedResult();
 				continue;
 			}
-			if (!$dryRun && ($pair->getLockedUntil() ?? 0) > time()) {
-				$out && $out("pair {$pair->getId()} is locked, skipping");
-				$results[(int)$pair->getId()] = $this->truncatedResult();
-				continue;
-			}
 			if (!$dryRun) {
-				$pair->setLockedUntil(time() + self::LOCK_SECONDS);
-				$this->collections->update($pair);
+				$now = time();
+				if (!$this->collections->tryLock((int)$pair->getId(), $now, $now + self::LOCK_SECONDS)) {
+					$out && $out("pair {$pair->getId()} is locked by another run, skipping");
+					$results[(int)$pair->getId()] = $this->truncatedResult(true);
+					continue;
+				}
+				$pair->setLockedUntil($now + self::LOCK_SECONDS);
+			}
+			if ($full) {
+				$pair->setLocalSyncToken(null);
+				$pair->setDeltaLink(null);
 			}
 			try {
 				$result = $this->syncPair($userId, $pair, $dryRun, $out, $deadline);
@@ -119,9 +124,10 @@ class UserSyncService {
 	}
 
 	/** Placeholder for a pair that could not run in this call (locked or out of time). */
-	private function truncatedResult(): SyncResult {
+	private function truncatedResult(bool $locked = false): SyncResult {
 		$r = new SyncResult();
 		$r->truncated = true;
+		$r->locked = $locked;
 		return $r;
 	}
 

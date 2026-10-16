@@ -22,6 +22,8 @@ class SyncResult {
 	public bool $truncated = false;
 	/** Objects that still have to be copied when the run was truncated. */
 	public int $remaining = 0;
+	/** The pair did not run because another process holds its lock (truncated is set too). */
+	public bool $locked = false;
 	/** @var list<string> */
 	public array $log = [];
 

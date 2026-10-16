@@ -22,7 +22,7 @@ class SecretService {
 	) {
 	}
 
-	public function setEncrypted(string $userId, string $key, string $value): void {
+	public function setEncrypted(string $userId, string $key, #[\SensitiveParameter] string $value): void {
 		if ($value === '') {
 			$this->userConfig->deleteUserConfig($userId, Application::APP_ID, $key);
 			return;

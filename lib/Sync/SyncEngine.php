@@ -145,20 +145,37 @@ class SyncEngine {
 			$localDeleted = [];
 		}
 		$extras = $remoteChanged !== [] ? $remote->extrasFor(array_keys($remoteChanged)) : [];
+		$deferred = 0;
+		foreach ($extras as $id => $extra) {
+			if (!empty($extra['unavailable']) && isset($remoteChanged[$id])) {
+				// decoration could not be fetched: leave this object for the next run rather
+				// than writing it without its photo (the cursors are kept, see truncated)
+				unset($remoteChanged[$id], $extras[$id]);
+				$deferred++;
+			}
+		}
+		if ($deferred > 0) {
+			$r->truncated = true;
+			$r->log[] = "$deferred object(s) deferred: photo could not be fetched, continuing next run";
+		}
 		$planned = count($localChanged) + count($localDeleted) + count($remoteChanged) + count($remoteDeleted);
 
 		// --- helpers --------------------------------------------------------------
 		$writes = 0;
-		$budget = function () use (&$writes, $r, $deadline): bool {
-			if ($r->truncated) {
+		$exhausted = false;
+		$budget = function () use (&$writes, &$exhausted, $r, $deadline): bool {
+			/** @psalm-suppress TypeDoesNotContainType closure-captured by reference */
+			if ($exhausted) {
 				return false;
 			}
 			if ($writes >= self::MAX_WRITES) {
+				$exhausted = true;
 				$r->truncated = true;
 				$r->log[] = 'write budget exhausted, continuing next run';
 				return false;
 			}
 			if ($deadline !== null && microtime(true) > $deadline) {
+				$exhausted = true;
 				$r->truncated = true;
 				$r->log[] = 'time budget exhausted, continuing next run';
 				return false;
@@ -458,7 +475,7 @@ class SyncEngine {
 			}
 		}
 		if ($r->truncated) {
-			$r->remaining = max(0, $planned - $r->writes());
+			$r->remaining = max(0, $planned + $deferred - $r->writes());
 			$r->log[] = "{$r->remaining} object(s) remaining";
 		}
 		$r->log[] = $r->summary();

@@ -39,16 +39,7 @@ class Sync extends Command {
 		$verbose = $output->isVerbose() || $dryRun;
 		foreach ($users as $userId) {
 			$output->writeln("<info>$userId</info>");
-			if ($input->getOption('full')) {
-				foreach ($this->collections->findEnabledByUser($userId) as $pair) {
-					if ($pairId === null || $pair->getId() === $pairId) {
-						$pair->setLocalSyncToken(null);
-						$pair->setDeltaLink(null);
-						$this->collections->update($pair);
-					}
-				}
-			}
-			$results = $this->userSync->syncUser($userId, $dryRun, $verbose ? static fn (string $l) => $output->writeln($l) : null, $pairId);
+			$results = $this->userSync->syncUser($userId, $dryRun, $verbose ? static fn (string $l) => $output->writeln($l) : null, $pairId, null, (bool)$input->getOption('full'));
 			foreach ($results as $id => $result) {
 				$output->writeln("  pair $id: " . $result->summary());
 			}

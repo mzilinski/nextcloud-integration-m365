@@ -83,8 +83,16 @@ class CollectionsController extends Controller {
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_UNAUTHORIZED);
 		}
-		if (!in_array($type, Application::TYPES, true) || !in_array($conflictPolicy, ['remote', 'local', 'import'], true) || $remoteId === '') {
+		if (!in_array($type, Application::TYPES, true) || !in_array($conflictPolicy, ['remote', 'local', 'import'], true) || $remoteId === ''
+			|| strlen($remoteId) > 512 || mb_strlen($remoteName) > 255 || mb_strlen($localName) > 255) {
 			return new DataResponse(['error' => 'invalid parameters'], Http::STATUS_BAD_REQUEST);
+		}
+		try {
+			$readOnly = $this->remote->isReadOnly($this->userId, $type, $remoteId);
+		} catch (TokenException $e) {
+			return new DataResponse(['error' => $e->getMessage(), 'reauthRequired' => true], Http::STATUS_BAD_REQUEST);
+		} catch (GraphException $e) {
+			return new DataResponse(['error' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
 		}
 		try {
 			$pair = $this->collections->findByRemote($this->userId, $type, $remoteId);
@@ -102,7 +110,7 @@ class CollectionsController extends Controller {
 		}
 		$pair->setEnabled($enabled);
 		$pair->setLocalName(trim($localName) !== '' ? trim($localName) : ('M365 ' . $pair->getRemoteName()));
-		if ($this->remote->isReadOnly($this->userId, $type, $remoteId)) {
+		if ($readOnly) {
 			$conflictPolicy = 'import';
 		}
 		$pair->setConflictPolicy($conflictPolicy);
