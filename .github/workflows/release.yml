@@ -9,6 +9,11 @@ name: Build and publish app release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build (e.g. v0.2.0); the GitHub release must already exist
+        required: true
 
 permissions:
   contents: write
@@ -18,14 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_NAME: integration_m365
+      TAG: ${{ inputs.tag || github.ref_name }}
+      APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           path: ${{ env.APP_NAME }}
       - name: Validate app version against tag
         run: |
           v=$(grep -oE '<version>[^<]+' ${{ env.APP_NAME }}/appinfo/info.xml | cut -d'>' -f2)
-          [ "${GITHUB_REF##*/}" = "v$v" ] || { echo "tag ${GITHUB_REF##*/} != v$v"; exit 1; }
+          [ "$TAG" = "v$v" ] || { echo "tag $TAG != v$v"; exit 1; }
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -61,16 +69,17 @@ jobs:
           echo "$APP_CERTIFICATE" > ~/.nextcloud/certificates/${{ env.APP_NAME }}.crt
           php server/occ integrity:sign-app --privateKey=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.key --certificate=$HOME/.nextcloud/certificates/${{ env.APP_NAME }}.crt --path=$PWD/build/${{ env.APP_NAME }}
       - name: Tarball
-        run: tar -czf ${{ env.APP_NAME }}-${GITHUB_REF##*/}.tar.gz -C build ${{ env.APP_NAME }}
+        run: tar -czf ${{ env.APP_NAME }}-${TAG}.tar.gz -C build ${{ env.APP_NAME }}
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
           files: ${{ env.APP_NAME }}-*.tar.gz
       - name: Publish to app store
-        if: ${{ secrets.APPSTORE_TOKEN != '' }}
+        if: ${{ env.APPSTORE_TOKEN != '' }}
         uses: nextcloud-releases/nextcloud-appstore-push-action@v1
         with:
           app_name: ${{ env.APP_NAME }}
           appstore_token: ${{ secrets.APPSTORE_TOKEN }}
-          download_url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.APP_NAME }}-${{ github.ref_name }}.tar.gz
+          download_url: https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.TAG }}.tar.gz
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
