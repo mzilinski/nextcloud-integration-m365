@@ -12,6 +12,9 @@ use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
 
 class PersonalSection implements IIconSection {
+	/** Shared section id used by all integration apps (Nextcloud merges them). */
+	public const ID = 'connected-accounts';
+
 	public function __construct(
 		private IURLGenerator $urlGenerator,
 		private IL10N $l,
@@ -19,7 +22,7 @@ class PersonalSection implements IIconSection {
 	}
 
 	public function getID(): string {
-		return 'connected-accounts';
+		return self::ID;
 	}
 
 	public function getName(): string {

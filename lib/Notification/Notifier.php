@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\IntegrationM365\Notification;
 
 use OCA\IntegrationM365\AppInfo\Application;
+use OCA\IntegrationM365\Settings\PersonalSection;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Notification\INotification;
@@ -41,7 +42,7 @@ class Notifier implements INotifier {
 			throw new UnknownNotificationException();
 		}
 		$l = $this->l10nFactory->get(Application::APP_ID, $languageCode);
-		$settingsUrl = $this->urlGenerator->linkToRouteAbsolute('settings.PersonalSettings.index', ['section' => Application::APP_ID]);
+		$settingsUrl = $this->urlGenerator->linkToRouteAbsolute('settings.PersonalSettings.index', ['section' => PersonalSection::ID]);
 		$notification
 			->setParsedSubject($l->t('Microsoft 365 synchronisation stopped: reconnect your Microsoft account'))
 			->setParsedMessage($l->t('Microsoft rejected the stored login (for example after a password change). Calendars, contacts and tasks are no longer synchronised until you connect your account again in the personal settings.'))

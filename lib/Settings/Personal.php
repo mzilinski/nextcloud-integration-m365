@@ -35,7 +35,7 @@ class Personal implements ISettings {
 	}
 
 	public function getSection(): string {
-		return 'connected-accounts';
+		return PersonalSection::ID;
 	}
 
 	public function getPriority(): int {
