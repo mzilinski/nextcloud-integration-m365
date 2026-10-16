@@ -10,9 +10,12 @@ namespace OCA\IntegrationM365\Service;
 use OCA\IntegrationM365\AppInfo\Application;
 use OCA\IntegrationM365\Exception\GraphException;
 use OCA\IntegrationM365\Exception\TokenException;
+use OCA\IntegrationM365\Notification\Notifier;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Http\Client\IClientService;
 use OCP\IURLGenerator;
+use OCP\Notification\IManager as INotificationManager;
 use OCP\Security\ISecureRandom;
 use Psr\Log\LoggerInterface;
 
@@ -35,6 +38,8 @@ class OAuthService {
 		private IURLGenerator $urlGenerator,
 		private ISecureRandom $random,
 		private LoggerInterface $logger,
+		private INotificationManager $notifications,
+		private ITimeFactory $timeFactory,
 	) {
 	}
 
@@ -121,7 +126,7 @@ class OAuthService {
 		$me = json_decode((string)$response->getBody(), true) ?: [];
 		$this->secrets->setPlain($userId, 'user_name', (string)($me['displayName'] ?? ''));
 		$this->secrets->setPlain($userId, 'user_principal', (string)($me['userPrincipalName'] ?? $me['mail'] ?? ''));
-		$this->secrets->delete($userId, 'reauth_required');
+		$this->clearReauthRequired($userId);
 		return $me;
 	}
 
@@ -162,8 +167,7 @@ class OAuthService {
 		} catch (GraphException $e) {
 			if (in_array($e->graphCode, ['invalid_grant', 'interaction_required', 'invalid_client'], true)) {
 				// Dead refresh token (revoked, > 90 days idle, consent withdrawn): needs a new login.
-				$this->secrets->setPlain($userId, 'reauth_required', '1');
-				$this->logger->warning('Microsoft 365 refresh token rejected for user, reconnect required', ['app' => Application::APP_ID, 'uid' => $userId]);
+				$this->markReauthRequired($userId, $e);
 				throw new TokenException('Reconnect your Microsoft account', 0, $e);
 			}
 			throw $e;
@@ -173,9 +177,40 @@ class OAuthService {
 	}
 
 	public function disconnect(string $userId): void {
-		foreach (['access_token', 'refresh_token', 'token_expires_at', 'user_name', 'user_principal', 'reauth_required', 'oauth_state', 'oauth_verifier'] as $key) {
+		foreach (['access_token', 'refresh_token', 'token_expires_at', 'user_name', 'user_principal', 'oauth_state', 'oauth_verifier'] as $key) {
 			$this->secrets->delete($userId, $key);
 		}
+		$this->clearReauthRequired($userId);
+	}
+
+	/**
+	 * Flag the account and notify the user once; the background job would otherwise
+	 * fail every 5 minutes with nothing but a log line (the AADSTS reason is logged
+	 * so an admin can tell a password change from a revoked consent).
+	 */
+	private function markReauthRequired(string $userId, GraphException $e): void {
+		$first = $this->secrets->getPlain($userId, 'reauth_required') !== '1';
+		$this->secrets->setPlain($userId, 'reauth_required', '1');
+		$this->logger->warning('Microsoft 365 refresh token rejected for user, reconnect required', [
+			'app' => Application::APP_ID, 'uid' => $userId, 'error' => $e->graphCode, 'reason' => $e->getMessage(),
+		]);
+		if (!$first) {
+			return;
+		}
+		$notification = $this->notifications->createNotification();
+		$notification->setApp(Application::APP_ID)
+			->setUser($userId)
+			->setDateTime($this->timeFactory->getDateTime())
+			->setObject('account', $userId)
+			->setSubject(Notifier::SUBJECT_REAUTH);
+		$this->notifications->notify($notification);
+	}
+
+	private function clearReauthRequired(string $userId): void {
+		$this->secrets->delete($userId, 'reauth_required');
+		$notification = $this->notifications->createNotification();
+		$notification->setApp(Application::APP_ID)->setUser($userId)->setObject('account', $userId);
+		$this->notifications->markProcessed($notification);
 	}
 
 	private function storeToken(string $userId, array $token): void {

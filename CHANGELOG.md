@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- When Microsoft rejects the refresh token (password change, revoked sessions, consent withdrawn) the user now gets a Nextcloud notification linking to the personal settings; it is cleared on reconnect. The Microsoft error (e.g. AADSTS50173) is written to the log.
+- README: setup guide for any tenant (Entra ID app registration, scopes, consent).
+
+## 0.2.0 – 2026-10-16
 - App skeleton, Entra ID OAuth (authorization code + PKCE), admin and personal settings, collection discovery.
 - Graph ↔ iCalendar/vCard mapping ported from graphpim, verified by the shared conformance fixtures.
 - Two-way sync engine: local sync tokens + Graph delta, correlation table, echo filter, conflict policy, dry run.
