@@ -76,6 +76,32 @@ client-credentials token request, which the multi-tenant endpoints do not offer)
 `common`, `organizations` or `consumers` the registration is verified by the first user
 login.
 
+### Private Nextcloud instances and the "unverified publisher" notice
+
+You do not need a Microsoft 365 subscription or a company tenant to register the
+application. Signing in to the [Entra admin center](https://entra.microsoft.com) with any
+Microsoft account creates a free directory in which app registrations are allowed.
+Choose *any organizational directory and personal Microsoft accounts* and the tenant
+`common`; the registration then works for every user of your instance.
+
+Users are never asked to do anything in a tenant themselves. They sign in, see
+Microsoft's consent screen ("Nextcloud wants to read and write your calendars, contacts
+and tasks") and accept. What differs is who may accept:
+
+| The user's account | What happens |
+|---|---|
+| Personal Microsoft account (outlook.com, hotmail, live) | The user consents; done. The consent screen says *unverified* next to the app name, which personal accounts may ignore. |
+| Work or school account in an organisation that lets users consent | The user consents; done. |
+| Work or school account in an organisation that restricts consent to verified publishers or low-impact permissions (the Entra default recommended by Microsoft) | Microsoft shows *Approval required*; the user's IT has to grant the application once (*Enterprise applications → Admin consent*). Neither the user nor the Nextcloud admin can change that. The app reports it as AADSTS65001 / 90094. |
+
+Becoming a *verified publisher* (which removes the restriction for most organisations)
+requires a Microsoft Partner Center account with a verified domain and business details;
+that is out of reach for most private operators. The app deliberately does not ship a
+registration of its own: Entra requires every redirect URI to be registered in advance,
+so a shared registration would need a relay service between Microsoft and your instance,
+which contradicts the promise that nothing leaves your server. If that trade-off ever
+becomes worth it, it will be an explicit opt-in, never the default.
+
 ### Rotating the client secret
 
 Create a new secret in Entra ID, paste it into the Nextcloud admin settings, save. Users
