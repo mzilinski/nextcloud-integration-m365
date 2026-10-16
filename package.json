@@ -1,6 +1,6 @@
 {
   "name": "integration_m365",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "description": "Microsoft 365 integration for Nextcloud",
   "private": true,
   "type": "module",

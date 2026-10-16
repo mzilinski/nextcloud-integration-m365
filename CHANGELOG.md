@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] – 2026-10-16
 
 ### Documentation
 - README split into a short overview plus `docs/admin.md` (Entra ID registration step by step, permissions and why, account types, secret rotation, `occ` commands, troubleshooting by AADSTS code, scaling, uninstall), `docs/user.md` and `docs/privacy.md` (data flow, storage, retention, logging and deletion for data protection officers). Wrong menu paths fixed: the settings live under *Connected accounts*.

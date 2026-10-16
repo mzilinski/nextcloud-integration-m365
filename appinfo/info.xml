@@ -11,7 +11,7 @@ An administrator registers one application in Microsoft Entra ID (any tenant, or
 **Requirements:** a working Nextcloud background job (cron) and an Entra ID app registration with the delegated Graph permissions Calendars.ReadWrite, Contacts.ReadWrite, Tasks.ReadWrite, User.Read and offline_access. The admin documentation walks through the registration.
 
 **Data sent to Microsoft:** the calendar, contact and task data you choose to synchronise is read from and written to Microsoft Graph (graph.microsoft.com) on your behalf. Nothing else leaves your server.]]></description>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
     <licence>agpl</licence>
     <author mail="malte@zilinski.eu" homepage="https://github.com/mzilinski">Malte Zilinski</author>
     <namespace>IntegrationM365</namespace>

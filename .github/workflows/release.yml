@@ -45,7 +45,7 @@ jobs:
           [ "$TAG" = "v$v" ] || { echo "tag $TAG != info.xml v$v"; exit 1; }
           pv=$(node -p "require('./package.json').version")
           [ "$pv" = "$v" ] || { echo "package.json $pv != $v"; exit 1; }
-          grep -qE "^## $v( |$)" CHANGELOG.md || { echo "CHANGELOG.md has no section for $v"; exit 1; }
+          grep -qE "^## \[?$v\]?( |$)" CHANGELOG.md || { echo "CHANGELOG.md has no section for $v"; exit 1; }
           grep -qi 'unreleased' CHANGELOG.md && { echo "CHANGELOG.md still says unreleased"; exit 1; } || true
       - uses: actions/setup-node@v4
         with:
