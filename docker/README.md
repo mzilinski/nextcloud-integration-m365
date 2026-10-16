@@ -23,10 +23,15 @@ PHP tooling runs inside the container (the app's PHP version), the frontend on t
 docker compose -f docker/compose.yml run --rm composer install
 docker compose -f docker/compose.yml exec -w /var/www/html/custom_apps/integration_m365 app vendor/bin/phpunit
 docker compose -f docker/compose.yml exec -w /var/www/html/custom_apps/integration_m365 app vendor/bin/psalm.phar
+docker compose -f docker/compose.yml exec -w /var/www/html/custom_apps/integration_m365 app vendor/bin/php-cs-fixer fix
 npm ci && npm run build        # or: npm run watch
+npm run lint && npm run stylelint
 ```
 
 Azure: add `http://localhost:8181/apps/integration_m365/oauth-redirect` as a "Web" redirect URI of the app registration used for development.
+
+`docker/dev/*-check.php` are throw-away scripts that exercise lifecycle, locking and
+settings code paths against the dev instance (run with `exec app php custom_apps/integration_m365/docker/dev/<name>.php`).
 
 ## Graph calls with a user's stored token
 

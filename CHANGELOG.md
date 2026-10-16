@@ -1,6 +1,17 @@
 # Changelog
 
-## 1.0.0 – unreleased
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Documentation
+- README split into a short overview plus `docs/admin.md` (Entra ID registration step by step, permissions and why, account types, secret rotation, `occ` commands, troubleshooting by AADSTS code, scaling, uninstall), `docs/user.md` and `docs/privacy.md` (data flow, storage, retention, logging and deletion for data protection officers). Wrong menu paths fixed: the settings live under *Connected accounts*.
+- `SECURITY.md` (private reporting, scope, design notes) and `CONTRIBUTING.md` (setup, checks, conventions, fixture rules, release steps).
+- Known limitations extended (own mailbox only, 1 MB cap, failed objects retried on change, write-cap rounds).
+- Changelog switched to the Keep a Changelog format.
+
 ### Lifecycle and data hygiene
 - Deleting a Nextcloud user now removes their tokens, pairs, correlations, queued jobs and notifications (`UserDeletedEvent`). Before, the background job kept recreating an orphaned calendar for the deleted principal every 5 minutes.
 - Disconnecting removes the queued sync job and, with purge, the correlations as well (they were left behind). Without purge the pairs are only disabled and resume on reconnect.

@@ -7,11 +7,14 @@ They were extracted from the autotests of the Microsoft 365 (Graph) resource in
 [kdepim-runtime](https://invent.kde.org/pim/kdepim-runtime) (`resources/graph/autotests/`)
 and extended where the Python mapping goes further (nth-weekday recurrences,
 Windows time-zone names, HTML bodies, duration-only events). Any implementation —
-C++, Python, PHP, Rust — can run them; `tests/test_fixtures.py` shows the harness.
+C++, Python, PHP, Rust — can run them. This copy is verbatim from
+[vdirsyncer-graph](https://github.com/mzilinski/vdirsyncer-graph) (`fixtures/`), where
+`tests/test_fixtures.py` is the Python harness; `tests/Unit/Mapping/FixtureTest.php` is the
+PHP one. CI fails when the two copies differ.
 
 ## File schema
 
-One JSON file per case, `fixtures/<kind>/<name>.json`, `kind` ∈ `events`, `contacts`, `todos`:
+One JSON file per case, `tests/fixtures/<kind>/<name>.json`, `kind` ∈ `events`, `contacts`, `todos`:
 
 | key | meaning |
 |---|---|
