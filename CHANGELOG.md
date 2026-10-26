@@ -5,6 +5,9 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### App Store listing
+- Real screenshots of the personal settings, the admin settings and the Calendar app (demo account and data) replace the placeholders.
+
 ### Documentation
 - Admin guide: private operators can register the app with any Microsoft account; which users may consent themselves and why work accounts in restrictive tenants need an IT approval ("unverified publisher").
 

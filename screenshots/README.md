@@ -4,8 +4,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 # Screenshots for the App Store listing
 
-`appinfo/info.xml` links to these files on the `main` branch. The PNGs here are
-neutral placeholders; replace them with real captures (1280×800 or larger, PNG):
+`appinfo/info.xml` links to these files on the `main` branch. They are captures of
+the dev instance (`docker/`) at 1280×800, device pixel ratio 2, with a demo user and
+demo data; when replacing them keep that size and show:
 
 | File | What to show |
 |---|---|
